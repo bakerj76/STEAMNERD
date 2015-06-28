@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.Remoting.Services;
 using SteamKit2.GC.Dota.Internal;
+using STEAMNERD.Modules;
 
 namespace STEAMNERD
 {
@@ -12,6 +13,9 @@ namespace STEAMNERD
             FancyLogIn(out user, out password);
 
             var steamNerd = new SteamNerd(user, password);
+            steamNerd.AddModule(new LingT(steamNerd));
+            steamNerd.AddModule(new DiceRoll(steamNerd));
+
             steamNerd.Connect();
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -21,9 +22,11 @@ namespace STEAMNERD
         private readonly CallbackManager _manager;
 
         private readonly string _user;
-        private readonly string _password;
+        private string _password;
         private string _authCode;
         private string _twoFactorAuth;
+
+        private List<Module> _modules;
 
         public SteamNerd(string user, string pass)
         {
@@ -35,6 +38,8 @@ namespace STEAMNERD
 
             _steamUser = _steamClient.GetHandler<SteamUser>();
             _steamFriends = _steamClient.GetHandler<SteamFriends>();
+
+            _modules = new List<Module>();
 
             #region Steam Client Callbacks
 
@@ -105,7 +110,7 @@ namespace STEAMNERD
                                  TwoFactorCode = _twoFactorAuth,
                                  SentryFileHash = sentryHash,
                              }
-                );
+            );
         }
 
         private void OnDisconnect(SteamClient.DisconnectedCallback callback)
@@ -195,6 +200,7 @@ namespace STEAMNERD
             }
 
             Console.WriteLine("Logged in as {0}!", _user);
+            _password = "";
         }
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
@@ -209,14 +215,20 @@ namespace STEAMNERD
 
         private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
         {
-            ParseMessage(callback.Message, callback.Sender, false);
+            foreach (var module in _modules)
+            {
+                module.OnFriendMsg(callback);
+            }
         }
 
         private void OnChatMsg(SteamFriends.ChatMsgCallback callback)
         {
             if (callback.ChatMsgType != EChatEntryType.ChatMsg) return;
 
-            ParseMessage(callback.Message, callback.ChatRoomID, true);
+            foreach (var module in _modules.Where(module => module.Match(callback)))
+            {
+                module.OnChatMsg(callback);
+            }
         }
 
         private void OnChatInvite(SteamFriends.ChatInviteCallback callback)
@@ -235,51 +247,20 @@ namespace STEAMNERD
             }
 
             Console.WriteLine("Joined chat.");
+
+            foreach (var module in _modules)
+            {
+                module.OnChatEnter(callback);
+            }
         }
 
-        private void ParseMessage(string message, SteamID steamid, bool isChat)
-        {
-
-            if (!Regex.IsMatch(message, @"^!\d+d\d")) return;
-
-            var split = Regex.Split(message, "[!d]");
-            int numDice, sides;
-
-            if (!int.TryParse(split[1], out numDice) || numDice == 0 || numDice > 1000) return;
-            if (!int.TryParse(split[2], out sides) || sides == 0 || sides >= int.MaxValue - 1) return;
-
-            var rolls = new int[numDice];
-            var rand = new Random();
-
-            for (var i = 0; i < numDice; i++)
-            {
-                rolls[i] = rand.Next(1, sides + 1);
-            }
-
-            var rollStr = "";
-            if (numDice > 1)
-            {
-                rollStr = rolls.Select(roll => roll.ToString())
-                    .Aggregate((current, roll) => string.Format("{0} + {1}", current, roll));
-                try
-                {
-                    rollStr += string.Format(" = {0}", rolls.Sum());
-                }
-                catch (Exception e)
-                {
-                    SendMessage(string.Format("Wow, cool, overflow... Very nice {0}", steamid.Render()), steamid, isChat);
-                    return;
-                }
-            }
-            else
-            {
-                rollStr = rolls[0].ToString();
-            }
-
-            SendMessage(rollStr, steamid, isChat);
-        }
-
-        private void SendMessage(string message, SteamID steamid, bool isChat)
+        /// <summary>
+        /// Sends a chat message to a SteamID.
+        /// </summary>
+        /// <param name="message">The chat message</param>
+        /// <param name="steamid">The person or the chat room to send to</param>
+        /// <param name="isChat">Is this a chat room or a person?</param>
+        public void SendMessage(string message, SteamID steamid, bool isChat)
         {
             if (isChat)
             {
@@ -289,6 +270,11 @@ namespace STEAMNERD
             {
                 _steamFriends.SendChatMessage(steamid, EChatEntryType.ChatMsg, message);
             }
+        }
+
+        public void AddModule(Module module)
+        {
+            _modules.Add(module);
         }
     }
 }
