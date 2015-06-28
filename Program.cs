@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using SteamKit2;
+using System.Runtime.Remoting.Services;
+using SteamKit2.GC.Dota.Internal;
 
 namespace STEAMNERD
 {
@@ -12,33 +8,31 @@ namespace STEAMNERD
     {
         static void Main(string[] args)
         {
-            var user = args[0];
-            var pass = args[1];
-            
-            var steamClient = new SteamClient();
-            var manager = new CallbackManager(steamClient);
-            var steamUser = steamClient.GetHandler<SteamUser>();
-            
-            new Callback<SteamClient.ConnectedCallback>(OnConnect, manager);
-            new Callback<SteamClient.DisconnectedCallback>(OnDisconnect, manager);
-            
-            new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, manager);
-            
+            string user, password;
+            FancyLogIn(out user, out password);
+
+            var steamNerd = new SteamNerd(user, password);
+            steamNerd.Connect();
         }
-        
-        public static void OnConnect(SteamClient.ConnectedCallback callback)
+
+        static void FancyLogIn(out string user, out string password)
         {
-            
-        }
-        
-        public static void OnDisconnect(SteamClient.DisconnectedCallback callback)
-        {
-            
-        }
-        
-        public static void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
-        {
-            
+            // Get the username
+            Console.Write("Username: ");
+            user = Console.ReadLine();
+
+            // Get the password
+            Console.Write("Password: ");
+            var key = Console.ReadKey(true);
+            password = "";
+
+            while (key.Key != ConsoleKey.Enter)
+            {
+                password += key.KeyChar;
+                key = Console.ReadKey(true);
+            }
+
+            Console.WriteLine();
         }
     }
 }
