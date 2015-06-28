@@ -5,10 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 
 using SteamKit2;
-using SteamKit2.GC.Dota.Internal;
 
 namespace STEAMNERD
 {
@@ -16,9 +14,12 @@ namespace STEAMNERD
     {
         public bool IsRunning;
 
+        public readonly SteamFriends SteamFriends;
+
+        public Dictionary<SteamID, string> Chatters;  
+
         private readonly SteamClient _steamClient;
         private readonly SteamUser _steamUser;
-        private readonly SteamFriends _steamFriends;
         private readonly CallbackManager _manager;
 
         private readonly string _user;
@@ -27,6 +28,7 @@ namespace STEAMNERD
         private string _twoFactorAuth;
 
         private List<Module> _modules;
+        private SteamID _currentChatRoom;
 
         public SteamNerd(string user, string pass)
         {
@@ -37,9 +39,12 @@ namespace STEAMNERD
             _manager = new CallbackManager(_steamClient);
 
             _steamUser = _steamClient.GetHandler<SteamUser>();
-            _steamFriends = _steamClient.GetHandler<SteamFriends>();
+            SteamFriends = _steamClient.GetHandler<SteamFriends>();
 
             _modules = new List<Module>();
+            _currentChatRoom = null;
+
+            Chatters = new Dictionary<SteamID, string>();
 
             #region Steam Client Callbacks
 
@@ -59,6 +64,7 @@ namespace STEAMNERD
             
             #region Steam Friend Callbacks
 
+            new Callback<SteamFriends.PersonaStateCallback>(OnPersonaState, _manager);
             new Callback<SteamFriends.FriendMsgCallback>(OnFriendMsg, _manager);
             new Callback<SteamFriends.ChatMsgCallback>(OnChatMsg, _manager);
             new Callback<SteamFriends.ChatInviteCallback>(OnChatInvite, _manager);
@@ -210,7 +216,24 @@ namespace STEAMNERD
 
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
-            _steamFriends.SetPersonaState(EPersonaState.Online);
+            SteamFriends.SetPersonaState(EPersonaState.Online);
+        }
+
+        private void OnPersonaState(SteamFriends.PersonaStateCallback callback)
+        {
+            if (_currentChatRoom == null || callback.SourceSteamID != _currentChatRoom) return;
+
+            var friendId = callback.FriendID;
+
+            if (callback.State != EPersonaState.Offline && !Chatters.ContainsKey(friendId))
+            {
+                Console.WriteLine("Adding {0}", callback.Name);
+                Chatters.Add(friendId, callback.Name);
+            }
+            else if (callback.State == EPersonaState.Offline && Chatters.ContainsKey(friendId))
+            {
+                Chatters.Remove(friendId);
+            }
         }
 
         private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
@@ -234,7 +257,9 @@ namespace STEAMNERD
         private void OnChatInvite(SteamFriends.ChatInviteCallback callback)
         {
             Console.WriteLine("Joining chat {0}...", callback.ChatRoomName);
-            _steamFriends.JoinChat(callback.ChatRoomID);
+
+            _currentChatRoom = callback.ChatRoomID;
+            SteamFriends.JoinChat(callback.ChatRoomID);
         }
 
         private void OnChatEnter(SteamFriends.ChatEnterCallback callback)
@@ -264,11 +289,11 @@ namespace STEAMNERD
         {
             if (isChat)
             {
-                _steamFriends.SendChatRoomMessage(steamid, EChatEntryType.ChatMsg, message);
+                SteamFriends.SendChatRoomMessage(steamid, EChatEntryType.ChatMsg, message);
             }
             else
             {
-                _steamFriends.SendChatMessage(steamid, EChatEntryType.ChatMsg, message);
+                SteamFriends.SendChatMessage(steamid, EChatEntryType.ChatMsg, message);
             }
         }
 

@@ -26,17 +26,12 @@ namespace STEAMNERD.Modules
         public override void OnChatMsg(SteamFriends.ChatMsgCallback callback)
         {
             var message = callback.Message;
-            var steamid = callback.ChatterID;
-
-            var split = Regex.Split(message, "[!d]");
             int numDice, sides;
 
-            if (split[1] == "")
+            if (!ParseString(message, out numDice, out sides))
             {
-                numDice = 1;
+                return;
             }
-            else if (!int.TryParse(split[1], out numDice) || numDice == 0 || numDice > 1000) return;
-            if (!int.TryParse(split[2], out sides) || sides == 0 || sides >= int.MaxValue - 1) return;
 
             var rolls = new int[numDice];
 
@@ -54,10 +49,9 @@ namespace STEAMNERD.Modules
                 {
                     rollStr += string.Format(" = {0}", rolls.Sum());
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    SteamNerd.SendMessage(string.Format("Wow, cool, overflow... Very nice {0}", 
-                        steamid.Render()), callback.ChatRoomID, true);
+                    SteamNerd.SendMessage(e.Message, callback.ChatRoomID, true);
                     return;
                 }
             }
@@ -67,6 +61,36 @@ namespace STEAMNERD.Modules
             }
 
             SteamNerd.SendMessage(rollStr, callback.ChatRoomID, true);
+        }
+
+        /// <summary>
+        /// Parses the message and returns the number of rolls of the die and the number of faces of that die
+        /// </summary>
+        /// <param name="message">The message to be parsed</param>
+        /// <param name="numDice">The number of rolls</param>
+        /// <param name="faces">The number of faces</param>
+        /// <returns>Did it work?</returns>
+        private bool ParseString(string message, out int numDice, out int faces)
+        {
+            var split = Regex.Split(message, "[!d]");
+            numDice = 0;
+            faces = 0;
+
+            if (split[1] == "")
+            {
+                numDice = 1;
+            }
+            else if (!int.TryParse(split[1], out numDice) || numDice == 0 || numDice > 1000)
+            {
+                return false;
+            }
+
+            if (!int.TryParse(split[2], out faces) || faces == 0 || faces >= int.MaxValue - 1)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
