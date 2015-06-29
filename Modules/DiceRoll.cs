@@ -12,20 +12,22 @@ namespace STEAMNERD.Modules
     class DiceRoll : Module
     {
         private readonly Random _rand;
+        private Regex _regex;
 
         public DiceRoll(SteamNerd steamNerd) : base(steamNerd)
         {
             _rand = new Random();
+            _regex = new Regex(@"\d*d\d+", RegexOptions.Compiled);
         }
 
         public override bool Match(SteamFriends.ChatMsgCallback callback)
         {
-            return Regex.IsMatch(callback.Message, @"^!\d+d\d");
+            return _regex.IsMatch(callback.Message);
         }
 
         public override void OnChatMsg(SteamFriends.ChatMsgCallback callback)
         {
-            var message = callback.Message;
+            var message = _regex.Match(callback.Message).Value;
             int numDice, sides;
 
             if (!ParseString(message, out numDice, out sides))
@@ -72,20 +74,20 @@ namespace STEAMNERD.Modules
         /// <returns>Did it work?</returns>
         private bool ParseString(string message, out int numDice, out int faces)
         {
-            var split = Regex.Split(message, "[!d]");
+            var split = Regex.Split(message, "d");
             numDice = 0;
             faces = 0;
 
-            if (split[1] == "")
+            if (split[0] == "")
             {
                 numDice = 1;
             }
-            else if (!int.TryParse(split[1], out numDice) || numDice == 0 || numDice > 1000)
+            else if (!int.TryParse(split[0], out numDice) || numDice == 0 || numDice > 1000)
             {
                 return false;
             }
 
-            if (!int.TryParse(split[2], out faces) || faces == 0 || faces >= int.MaxValue - 1)
+            if (!int.TryParse(split[1], out faces) || faces == 0 || faces >= int.MaxValue - 1)
             {
                 return false;
             }
