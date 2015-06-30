@@ -16,6 +16,7 @@ namespace STEAMNERD
             steamNerd.AddModule(new LingT(steamNerd));
             steamNerd.AddModule(new DiceRoll(steamNerd));
             steamNerd.AddModule(new TrollSlayer(steamNerd));
+            steamNerd.AddModule(new Eval(steamNerd));
 
             steamNerd.Connect();
         }
