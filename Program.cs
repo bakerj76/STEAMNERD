@@ -17,6 +17,7 @@ namespace STEAMNERD
             steamNerd.AddModule(new DiceRoll(steamNerd));
             steamNerd.AddModule(new PersistentChat(steamNerd));
             steamNerd.AddModule(new Mingag(steamNerd));
+            steamNerd.AddModule(new TrollSlayer(steamNerd));
 
             steamNerd.Connect();
         }

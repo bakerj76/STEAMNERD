@@ -16,10 +16,11 @@ namespace STEAMNERD
 
         public readonly SteamFriends SteamFriends;
 
-        public Dictionary<SteamID, string> Chatters;  
+        public Dictionary<SteamID, string> Chatters;
+        public SteamID CurrentChatRoom;
+        public readonly SteamUser SteamUser;
 
         private readonly SteamClient _steamClient;
-        private readonly SteamUser _steamUser;
         private readonly CallbackManager _manager;
 
         private readonly string _user;
@@ -28,7 +29,7 @@ namespace STEAMNERD
         private string _twoFactorAuth;
 
         private List<Module> _modules;
-        public SteamID CurrentChatRoom;
+
 
         public SteamNerd(string user, string pass)
         {
@@ -38,7 +39,7 @@ namespace STEAMNERD
             _steamClient = new SteamClient();
             _manager = new CallbackManager(_steamClient);
 
-            _steamUser = _steamClient.GetHandler<SteamUser>();
+            SteamUser = _steamClient.GetHandler<SteamUser>();
             SteamFriends = _steamClient.GetHandler<SteamFriends>();
 
             _modules = new List<Module>();
@@ -69,6 +70,8 @@ namespace STEAMNERD
             new Callback<SteamFriends.ChatMsgCallback>(OnChatMsg, _manager);
             new Callback<SteamFriends.ChatInviteCallback>(OnChatInvite, _manager);
             new Callback<SteamFriends.ChatEnterCallback>(OnChatEnter, _manager);
+            new Callback<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo, _manager);
+            new Callback<SteamFriends.FriendsListCallback>(OnFriendsList, _manager);
 
             #endregion
         }
@@ -107,7 +110,7 @@ namespace STEAMNERD
                 sentryHash = CryptoHelper.SHAHash(sentryFile);
             }
 
-            _steamUser.LogOn(new SteamUser.LogOnDetails
+            SteamUser.LogOn(new SteamUser.LogOnDetails
                              {
                                  Username = _user,
                                  Password = _password,
@@ -152,7 +155,7 @@ namespace STEAMNERD
             }
 
             // inform the steam servers that we're accepting this sentry file
-            _steamUser.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
+            SteamUser.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
                 {
                     JobID = callback.JobID,
 
@@ -222,17 +225,18 @@ namespace STEAMNERD
         private void OnPersonaState(SteamFriends.PersonaStateCallback callback)
         {
             if (CurrentChatRoom == null || callback.SourceSteamID != CurrentChatRoom) return;
+            
+            var friendID = callback.FriendID;
 
-            var friendId = callback.FriendID;
-
-            if (callback.State != EPersonaState.Offline && !Chatters.ContainsKey(friendId))
+            if (callback.State != EPersonaState.Offline && !Chatters.ContainsKey(friendID))
             {
                 Console.WriteLine("Adding {0}", callback.Name);
-                Chatters.Add(friendId, callback.Name);
-            }
-            else if (callback.State == EPersonaState.Offline && Chatters.ContainsKey(friendId))
-            {
-                Chatters.Remove(friendId);
+                Chatters.Add(friendID, callback.Name);
+
+                foreach (var module in _modules)
+                {
+                    module.OnFriendChatEnter(callback);
+                }
             }
         }
 
@@ -241,6 +245,33 @@ namespace STEAMNERD
             foreach (var module in _modules)
             {
                 module.OnFriendMsg(callback);
+            }
+        }
+
+        private void OnChatMemberInfo(SteamFriends.ChatMemberInfoCallback callback)
+        {
+            if (callback.ChatRoomID != CurrentChatRoom) return;
+
+            var stateChangeInfo = callback.StateChangeInfo;
+            var chatterID = stateChangeInfo.ChatterActedOn;
+
+            switch (stateChangeInfo.StateChange)
+            {
+                case EChatMemberStateChange.Banned:
+                case EChatMemberStateChange.Disconnected:
+                case EChatMemberStateChange.Kicked:
+                case EChatMemberStateChange.Left:
+                {
+                    Console.WriteLine("Removing {0}", Chatters[chatterID]);
+
+                    foreach (var module in _modules)
+                    {
+                        module.OnFriendChatLeave(callback);
+                    }
+
+                    Chatters.Remove(chatterID);
+                    break;
+                }
             }
         }
 
@@ -256,9 +287,13 @@ namespace STEAMNERD
 
         private void OnChatInvite(SteamFriends.ChatInviteCallback callback)
         {
-            Console.WriteLine("Joining chat {0}...", callback.ChatRoomName);
+            Console.WriteLine("Joining chat {0} ({1})...", callback.ChatRoomName, callback.ChatRoomID.Render());
 
-            CurrentChatRoom = callback.ChatRoomID;
+            if (CurrentChatRoom == null)
+            {
+                CurrentChatRoom = callback.ChatRoomID;
+            }
+
             SteamFriends.JoinChat(callback.ChatRoomID);
         }
 
@@ -275,7 +310,23 @@ namespace STEAMNERD
 
             foreach (var module in _modules)
             {
-                module.OnChatEnter(callback);
+                module.OnSelfChatEnter(callback);
+            }
+        }
+
+        private void OnFriendsList(SteamFriends.FriendsListCallback callback)
+        {
+            Console.WriteLine("Getting Friends List...");
+
+            foreach (var friend in callback.FriendList)
+            {
+                Console.WriteLine(friend.Relationship);
+
+                if (friend.Relationship == EFriendRelationship.RequestRecipient)
+                {
+                    Console.WriteLine("Adding Friend {0}.", friend.SteamID);
+                    SteamFriends.AddFriend(friend.SteamID);
+                }
             }
         }
 
@@ -283,17 +334,17 @@ namespace STEAMNERD
         /// Sends a chat message to a SteamID.
         /// </summary>
         /// <param name="message">The chat message</param>
-        /// <param name="steamid">The person or the chat room to send to</param>
+        /// <param name="steamID">The person or the chat room to send to</param>
         /// <param name="isChat">Is this a chat room or a person?</param>
-        public void SendMessage(string message, SteamID steamid, bool isChat)
+        public void SendMessage(string message, SteamID steamID, bool isChat)
         {
             if (isChat)
             {
-                SteamFriends.SendChatRoomMessage(steamid, EChatEntryType.ChatMsg, message);
+                SteamFriends.SendChatRoomMessage(steamID, EChatEntryType.ChatMsg, message);
             }
             else
             {
-                SteamFriends.SendChatMessage(steamid, EChatEntryType.ChatMsg, message);
+                SteamFriends.SendChatMessage(steamID, EChatEntryType.ChatMsg, message);
             }
         }
 
