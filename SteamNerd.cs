@@ -28,7 +28,7 @@ namespace STEAMNERD
         private string _twoFactorAuth;
 
         private List<Module> _modules;
-        private SteamID _currentChatRoom;
+        public SteamID CurrentChatRoom;
 
         public SteamNerd(string user, string pass)
         {
@@ -42,7 +42,7 @@ namespace STEAMNERD
             SteamFriends = _steamClient.GetHandler<SteamFriends>();
 
             _modules = new List<Module>();
-            _currentChatRoom = null;
+            CurrentChatRoom = null;
 
             Chatters = new Dictionary<SteamID, string>();
 
@@ -221,7 +221,7 @@ namespace STEAMNERD
 
         private void OnPersonaState(SteamFriends.PersonaStateCallback callback)
         {
-            if (_currentChatRoom == null || callback.SourceSteamID != _currentChatRoom) return;
+            if (CurrentChatRoom == null || callback.SourceSteamID != CurrentChatRoom) return;
 
             var friendId = callback.FriendID;
 
@@ -258,7 +258,7 @@ namespace STEAMNERD
         {
             Console.WriteLine("Joining chat {0}...", callback.ChatRoomName);
 
-            _currentChatRoom = callback.ChatRoomID;
+            CurrentChatRoom = callback.ChatRoomID;
             SteamFriends.JoinChat(callback.ChatRoomID);
         }
 

@@ -11,18 +11,20 @@ namespace STEAMNERD.Modules
     /// </summary>
     class DiceRoll : Module
     {
-        private readonly Random _rand;
-        private Regex _regex;
+        private static Regex _regex = new Regex(@"\d*d\d+", RegexOptions.Compiled);
 
         public DiceRoll(SteamNerd steamNerd) : base(steamNerd)
         {
-            _rand = new Random();
-            _regex = new Regex(@"\d*d\d+", RegexOptions.Compiled);
+        }
+
+        public static bool IsDiceRoll(string message)
+        {
+            return _regex.IsMatch(message);
         }
 
         public override bool Match(SteamFriends.ChatMsgCallback callback)
         {
-            return _regex.IsMatch(callback.Message);
+            return IsDiceRoll(callback.Message);
         }
 
         public override void OnChatMsg(SteamFriends.ChatMsgCallback callback)
@@ -35,32 +37,8 @@ namespace STEAMNERD.Modules
                 return;
             }
 
-            var rolls = new int[numDice];
-
-            for (var i = 0; i < numDice; i++)
-            {
-                rolls[i] = _rand.Next(1, sides + 1);
-            }
-
-            var rollStr = "";
-            if (numDice > 1)
-            {
-                rollStr = rolls.Select(roll => roll.ToString())
-                    .Aggregate((current, roll) => string.Format("{0} + {1}", current, roll));
-                try
-                {
-                    rollStr += string.Format(" = {0}", rolls.Sum());
-                }
-                catch (Exception e)
-                {
-                    SteamNerd.SendMessage(e.Message, callback.ChatRoomID, true);
-                    return;
-                }
-            }
-            else
-            {
-                rollStr = rolls[0].ToString();
-            }
+            var rolls = GetRolls(numDice, sides);
+            var rollStr = GetStringFromRolls(rolls);
 
             SteamNerd.SendMessage(rollStr, callback.ChatRoomID, true);
         }
@@ -72,7 +50,7 @@ namespace STEAMNERD.Modules
         /// <param name="numDice">The number of rolls</param>
         /// <param name="faces">The number of faces</param>
         /// <returns>Did it work?</returns>
-        private bool ParseString(string message, out int numDice, out int faces)
+        public static bool ParseString(string message, out int numDice, out int faces)
         {
             var split = Regex.Split(message, "d");
             numDice = 0;
@@ -93,6 +71,44 @@ namespace STEAMNERD.Modules
             }
 
             return true;
+        }
+
+        public static int[] GetRolls(int numDice, int sides)
+        {
+            var rand = new Random();
+            var rolls = new int[numDice];
+
+            for (var i = 0; i < numDice; i++)
+            {
+                rolls[i] = rand.Next(1, sides + 1);
+            }
+
+            return rolls;
+        }
+
+        public static string GetStringFromRolls(int[] rolls)
+        {
+            var rollStr = "";
+
+            if (rolls.Length > 1)
+            {
+                rollStr = rolls.Select(roll => roll.ToString())
+                    .Aggregate((current, roll) => string.Format("{0} + {1}", current, roll));
+                try
+                {
+                    rollStr += string.Format(" = {0}", rolls.Sum());
+                }
+                catch (Exception e)
+                {
+                    return e.Message;
+                }
+            }
+            else
+            {
+                rollStr = rolls[0].ToString();
+            }
+
+            return rollStr;
         }
     }
 }
