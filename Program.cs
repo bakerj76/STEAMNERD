@@ -15,8 +15,8 @@ namespace STEAMNERD
             var steamNerd = new SteamNerd(user, password);
             steamNerd.AddModule(new LingT(steamNerd));
             steamNerd.AddModule(new DiceRoll(steamNerd));
-            steamNerd.AddModule(new TrollSlayer(steamNerd));
-            steamNerd.AddModule(new Eval(steamNerd));
+            steamNerd.AddModule(new PersistentChat(steamNerd));
+            steamNerd.AddModule(new Mingag(steamNerd));
 
             steamNerd.Connect();
         }

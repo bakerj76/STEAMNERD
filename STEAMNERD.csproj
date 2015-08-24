@@ -72,8 +72,9 @@
     <Reference Include="protobuf-net">
       <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
     </Reference>
-    <Reference Include="SteamKit2">
-      <HintPath>..\packages\SteamKit2.1.6.3\lib\net40\SteamKit2.dll</HintPath>
+    <Reference Include="SteamKit2, Version=1.6.4.32461, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\SteamKit2.1.6.4\lib\net40\SteamKit2.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Collections.Immutable, Version=1.1.36.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -93,9 +94,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Module.cs" />
+    <Compile Include="ModuleLoader.cs" />
     <Compile Include="Modules\DiceRoll.cs" />
     <Compile Include="Modules\Eval.cs" />
     <Compile Include="Modules\LingT.cs" />
+    <Compile Include="Modules\Mingag.cs" />
+    <Compile Include="Modules\PersistentChat.cs" />
+    <Compile Include="Modules\Roll69.cs" />
+    <Compile Include="Modules\Roll69Game.cs" />
     <Compile Include="Modules\TrollSlayer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

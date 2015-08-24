@@ -7,11 +7,13 @@ namespace STEAMNERD.Modules
 {
     class TrollSlayer : Module
     {
+        private bool _playing;
         private Random _rand;
         private List<SteamID> _chatters;
 
         public TrollSlayer(SteamNerd steamNerd) : base(steamNerd)
         {
+            _playing = false;
             _rand = new Random();
             _chatters = new List<SteamID>();
         }
