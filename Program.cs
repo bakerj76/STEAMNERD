@@ -18,6 +18,8 @@ namespace STEAMNERD
             steamNerd.AddModule(new PersistentChat(steamNerd));
             steamNerd.AddModule(new Mingag(steamNerd));
             steamNerd.AddModule(new TrollSlayer(steamNerd));
+            steamNerd.AddModule(new Party(steamNerd));
+            steamNerd.AddModule(new Roulette(steamNerd));
 
             steamNerd.Connect();
         }

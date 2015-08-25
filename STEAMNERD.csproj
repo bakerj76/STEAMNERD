@@ -94,11 +94,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Module.cs" />
+    <Compile Include="Modules\Party.cs" />
     <Compile Include="Modules\DiceRoll.cs" />
     <Compile Include="Modules\Eval.cs" />
     <Compile Include="Modules\LingT.cs" />
     <Compile Include="Modules\Mingag.cs" />
     <Compile Include="Modules\PersistentChat.cs" />
+    <Compile Include="Modules\Roulette.cs" />
     <Compile Include="Modules\TrollSlayer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
