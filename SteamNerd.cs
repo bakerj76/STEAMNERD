@@ -16,7 +16,7 @@ namespace STEAMNERD
 
         public readonly SteamFriends SteamFriends;
 
-        public Dictionary<SteamID, string> Chatters;
+        public Dictionary<SteamID, string> ChatRoomChatters;
         public SteamID CurrentChatRoom;
         public readonly SteamUser SteamUser;
 
@@ -44,7 +44,7 @@ namespace STEAMNERD
             _modules = new List<Module>();
             CurrentChatRoom = null;
 
-            Chatters = new Dictionary<SteamID, string>();
+            ChatRoomChatters = new Dictionary<SteamID, string>();
 
             #region Steam Client Callbacks
 
@@ -227,10 +227,10 @@ namespace STEAMNERD
             
             var friendID = callback.FriendID;
 
-            if (callback.State != EPersonaState.Offline && !Chatters.ContainsKey(friendID))
+            if (callback.State != EPersonaState.Offline && !ChatRoomChatters.ContainsKey(friendID))
             {
                 Console.WriteLine("Adding {0}", callback.Name);
-                Chatters.Add(friendID, callback.Name);
+                ChatRoomChatters.Add(friendID, callback.Name);
 
                 foreach (var module in _modules)
                 {
@@ -261,14 +261,14 @@ namespace STEAMNERD
                 case EChatMemberStateChange.Kicked:
                 case EChatMemberStateChange.Left:
                 {
-                    Console.WriteLine("Removing {0}", Chatters[chatterID]);
+                    Console.WriteLine("Removing {0}", ChatRoomChatters[chatterID]);
 
                     foreach (var module in _modules)
                     {
                         module.OnFriendChatLeave(callback);
                     }
 
-                    Chatters.Remove(chatterID);
+                    ChatRoomChatters.Remove(chatterID);
                     break;
                 }
             }

@@ -1,15 +1,41 @@
-﻿using SteamKit2;
+﻿using System.Collections.Generic;
+using SteamKit2;
 
 namespace STEAMNERD
 {
     public abstract class Module
     {
-        // TODO: Change this into Singleton
         protected SteamNerd SteamNerd;
+
+        public string Name;
+        public string Description;
+        public List<Command> Commands;
+        public delegate void CommandCallback(SteamFriends.ChatMsgCallback callback);
+
+        public struct Command
+        {
+            public string Name;
+            public string Help;
+            public CommandCallback Callback;
+        }
 
         protected Module(SteamNerd steamNerd)
         {
             SteamNerd = steamNerd;
+        }
+
+        public void Help(SteamID chatRoom)
+        {
+            var message1 = string.Format("{0}\n{1}", Name, Description);
+            var message2 = ".\n";
+
+            foreach (var command in Commands)
+            {
+                message2 += string.Format("{0,-15}- {1}", command.Name, command.Help);
+            }
+
+            SteamNerd.SendMessage(message1, chatRoom, true);
+            SteamNerd.SendMessage(message2, chatRoom, true);
         }
 
         /// <summary>

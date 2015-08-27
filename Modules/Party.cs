@@ -28,7 +28,7 @@ namespace STEAMNERD.Modules
             {
                 var friend = steamFriends.GetFriendByIndex(i);
 
-                if (!SteamNerd.Chatters.Keys.Contains(friend))
+                if (!SteamNerd.ChatRoomChatters.Keys.Contains(friend))
                 {
                     steamFriends.InviteUserToChat(friend, callback.ChatRoomID);
                     inviteCount++;
