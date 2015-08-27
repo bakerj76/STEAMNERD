@@ -13,6 +13,7 @@ namespace STEAMNERD
             FancyLogIn(out user, out password);
 
             var steamNerd = new SteamNerd(user, password);
+
             steamNerd.AddModule(new LingT(steamNerd));
             steamNerd.AddModule(new DiceRoll(steamNerd));
             steamNerd.AddModule(new PersistentChat(steamNerd));
@@ -20,10 +21,9 @@ namespace STEAMNERD
             steamNerd.AddModule(new TrollSlayer(steamNerd));
             steamNerd.AddModule(new Party(steamNerd));
             steamNerd.AddModule(new Roulette(steamNerd));
+            //steamNerd.AddModule(new Joke(steamNerd));
 
             steamNerd.Connect();
-
-            //new Joke(null);
         }
 
         static void FancyLogIn(out string user, out string password)

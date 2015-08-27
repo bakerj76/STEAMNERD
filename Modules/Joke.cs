@@ -1,4 +1,8 @@
-﻿using System;
+﻿/*
+using System;
+using System.Threading;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
 using CefSharp;
 using CefSharp.OffScreen;
 using SteamKit2;
@@ -12,15 +16,51 @@ namespace STEAMNERD.Modules
         private const string URL = "http://jokes.cc.com/";
         private ChromiumWebBrowser browser;
 
+        private BlockingCollection<string> _jokes;
+        private AutoResetEvent _callbackStopper;
+
         public Joke(SteamNerd steamNerd) : base(steamNerd)
+        {
+            _callbackStopper = new AutoResetEvent(false);
+            _jokes = new BlockingCollection<string>(QUEUE_SIZE);
+
+            var thread = new Thread(PopulateJokes);
+            thread.Start();
+        }
+
+        public override bool Match(SteamFriends.ChatMsgCallback callback)
+        {
+            return callback.Message.ToLower() == "!joke";
+        }
+
+        public override void OnChatMsg(SteamFriends.ChatMsgCallback callback)
+        {
+            string joke;
+
+            if (_jokes.TryTake(out joke))
+            {
+                SteamNerd.SendMessage(joke, callback.ChatRoomID, true);
+            }
+            else
+            {
+                SteamNerd.SendMessage("Loading jokes...", callback.ChatRoomID, true);
+            }
+            
+        }
+
+        public void PopulateJokes()
         {
             Cef.Initialize(new CefSettings());
 
-            browser = new ChromiumWebBrowser(URL);
-            browser.FrameLoadEnd += BrowserFrameLoadEnd;
+            while (true)
+            {
+                browser = new ChromiumWebBrowser(URL);
+                browser.FrameLoadEnd += BrowserFrameLoadEnd;
 
-            Console.Read();
-            Cef.Shutdown();
+                _callbackStopper.WaitOne();
+            }
+
+            //Cef.Shutdown();
         }
 
         private async void BrowserFrameLoadEnd(object sender, FrameLoadEndEventArgs e)
@@ -28,8 +68,6 @@ namespace STEAMNERD.Modules
             if (e.Frame.IsMain)
             {
                 browser.FrameLoadEnd -= BrowserFrameLoadEnd;
-
-                Console.WriteLine("Found main frame.");
                 var source = await browser.GetSourceAsync();
 
                 var doc = new HtmlDocument();
@@ -46,7 +84,19 @@ namespace STEAMNERD.Modules
                     }
                 }
 
-                var jokeDoc = new HtmlWeb().Load(link);
+
+                HtmlDocument jokeDoc;
+
+                try
+                {
+                    jokeDoc = new HtmlWeb().Load(link);
+                }
+                catch
+                {
+                    _callbackStopper.Set();
+                    return;
+                }
+                
                 var jokeNode = jokeDoc.DocumentNode.SelectSingleNode("//div[@class='content_wrap']");
                 var joke = "";
 
@@ -54,20 +104,15 @@ namespace STEAMNERD.Modules
                 {
                     if (node.Name == "p")
                     {
-                        var text = node.InnerText.Trim();
-                        if (text == "") continue;
-
-                        joke += text + "\n";
+                        joke += node.OuterHtml + "\n";
                     }
                 }
 
-                Console.WriteLine(joke);
+                joke = joke.Replace("<p>", "").Replace("<br>", "\n").Replace("</p>", "");
+                _jokes.Add(joke);
+                _callbackStopper.Set();
             }
-        }
-
-        public override bool Match(SteamFriends.ChatMsgCallback callback)
-        {
-            throw new NotImplementedException();
         }
     }
 }
+*/
