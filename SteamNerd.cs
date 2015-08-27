@@ -12,6 +12,8 @@ namespace STEAMNERD
 {
     public class SteamNerd
     {
+        public const char CommandChar = '.';
+
         public bool IsRunning;
 
         public readonly SteamFriends SteamFriends;
@@ -48,29 +50,29 @@ namespace STEAMNERD
 
             #region Steam Client Callbacks
 
-            new Callback<SteamClient.ConnectedCallback>(OnConnect, _manager);
-            new Callback<SteamClient.DisconnectedCallback>(OnDisconnect, _manager);
+            _manager.Subscribe<SteamClient.ConnectedCallback>(OnConnect);
+            _manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnect);
 
             #endregion
 
             #region Steam User Callbacks
 
-            new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, _manager);
-            new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, _manager);
-            new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, _manager);
-            new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, _manager);
+            _manager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
+            _manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
+            _manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
+            _manager.Subscribe<SteamUser.AccountInfoCallback>(OnAccountInfo);
 
             #endregion
-            
+
             #region Steam Friend Callbacks
 
-            new Callback<SteamFriends.PersonaStateCallback>(OnPersonaState, _manager);
-            new Callback<SteamFriends.FriendMsgCallback>(OnFriendMsg, _manager);
-            new Callback<SteamFriends.ChatMsgCallback>(OnChatMsg, _manager);
-            new Callback<SteamFriends.ChatInviteCallback>(OnChatInvite, _manager);
-            new Callback<SteamFriends.ChatEnterCallback>(OnChatEnter, _manager);
-            new Callback<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo, _manager);
-            new Callback<SteamFriends.FriendsListCallback>(OnFriendsList, _manager);
+            _manager.Subscribe<SteamFriends.PersonaStateCallback>(OnPersonaState);
+            _manager.Subscribe<SteamFriends.FriendMsgCallback>(OnFriendMsg);
+            _manager.Subscribe<SteamFriends.FriendsListCallback>(OnFriendsList);
+            _manager.Subscribe<SteamFriends.ChatMsgCallback>(OnChatMsg);
+            _manager.Subscribe<SteamFriends.ChatInviteCallback>(OnChatInvite);
+            _manager.Subscribe<SteamFriends.ChatEnterCallback>(OnChatEnter);
+            _manager.Subscribe<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo);
 
             #endregion
         }
