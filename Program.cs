@@ -22,6 +22,8 @@ namespace STEAMNERD
             steamNerd.AddModule(new Roulette(steamNerd));
 
             steamNerd.Connect();
+
+            //new Joke(null);
         }
 
         static void FancyLogIn(out string user, out string password)

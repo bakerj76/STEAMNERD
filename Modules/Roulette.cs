@@ -45,7 +45,6 @@ namespace STEAMNERD.Modules
             Reset();
             Load();
             _countdown = new Timer[3];
-
         }
         
         /// <summary>
@@ -92,7 +91,7 @@ namespace STEAMNERD.Modules
                 var reader = new BinaryReader(fileStream);
                 uint moneyCount = 0;
                 uint loanCount = 0;
-
+ 
                 try
                 {
                     moneyCount = reader.ReadUInt32();

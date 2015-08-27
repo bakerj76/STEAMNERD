@@ -30,7 +30,6 @@ namespace STEAMNERD
 
         private List<Module> _modules;
 
-
         public SteamNerd(string user, string pass)
         {
             _user = user;
