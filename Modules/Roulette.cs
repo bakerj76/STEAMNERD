@@ -43,82 +43,10 @@ namespace STEAMNERD.Modules
             _money = new Dictionary<SteamID, int>();
             _loans = new Dictionary<SteamID, int>();
             Reset();
-            Load();
             _countdown = new Timer[3];
         }
         
-        /// <summary>
-        /// Save everybody's money
-        /// </summary>
-        private void Save()
-        {
-            using (var fileStream = File.Open(path, FileMode.Create))
-            {
-                var writer = new BinaryWriter(fileStream);
-                writer.Write(_money.Count);
 
-                foreach (var entry in _money)
-                {
-                    writer.Write(entry.Key.Render());
-                    writer.Write(entry.Value);
-                }
-
-                writer.Write(_loans.Count);
-
-                foreach (var entry in _loans)
-                {
-                    writer.Write(entry.Key.Render());
-                    writer.Write(entry.Value);
-                }
-
-                writer.Flush();
-            }
-        }
-
-        /// <summary>
-        /// Load everybody's money
-        /// </summary>
-        private void Load()
-        {
-            if (!File.Exists(path))
-            {
-                File.Create(path);
-                return;
-            }
-
-            using (var fileStream = File.Open(path, FileMode.Open))
-            {
-                var reader = new BinaryReader(fileStream);
-                uint moneyCount = 0;
-                uint loanCount = 0;
- 
-                try
-                {
-                    moneyCount = reader.ReadUInt32();
-                }
-                catch { }
-
-                for (var i = 0; i < moneyCount; i++)
-                {
-                    var key = new SteamID(reader.ReadString());
-                    var value = reader.ReadInt32();
-                    _money[key] = value;
-                }
-
-                try
-                {
-                    loanCount = reader.ReadUInt32();
-                }
-                catch { }
-
-                for (var i = 0; i < loanCount; i++)
-                {
-                    var key = new SteamID(reader.ReadString());
-                    var value = reader.ReadInt32();
-                    _loans[key] = value;
-                }
-            }
-        }
 
         private void Reset()
         {
@@ -142,7 +70,7 @@ namespace STEAMNERD.Modules
 
         public override void OnChatMsg(SteamFriends.ChatMsgCallback callback)
         {
-            var chatter = SteamNerd.ChatRoomChatters[callback.ChatterID];
+            var chatter = SteamNerd.ChatterNames[callback.ChatterID];
             var message = callback.Message.ToLower();
             var isEntry = message.StartsWith("!enter");
 
@@ -325,8 +253,8 @@ namespace STEAMNERD.Modules
         private void StartBet(SteamID chatroom)
         {
             // Get names
-            var player1 = SteamNerd.ChatRoomChatters[_players[0]];
-            var player2 = SteamNerd.ChatRoomChatters[_players[1]];
+            var player1 = SteamNerd.ChatterNames[_players[0]];
+            var player2 = SteamNerd.ChatterNames[_players[1]];
 
             // Set flags
             _betTimerOver = false;
@@ -359,8 +287,8 @@ namespace STEAMNERD.Modules
 
         private void StartRoulette(SteamID chatroom)
         {
-            var player1 = SteamNerd.ChatRoomChatters[_players[0]];
-            var player2 = SteamNerd.ChatRoomChatters[_players[1]];
+            var player1 = SteamNerd.ChatterNames[_players[0]];
+            var player2 = SteamNerd.ChatterNames[_players[1]];
 
             _magicNumber = _rand.Next(1, 7);
             _currentSpinner = 0;
@@ -372,7 +300,7 @@ namespace STEAMNERD.Modules
         private void Spin(SteamID chatter, SteamID chat)
         {
             _spinning = true;
-            var name = SteamNerd.ChatRoomChatters[chatter];
+            var name = SteamNerd.ChatterNames[chatter];
             var spin = _rand.Next(1, 7);
             
             SteamNerd.SendMessage(string.Format("{0} spins the barrel...", name), chat, true);
@@ -388,7 +316,7 @@ namespace STEAMNERD.Modules
         private void Delay(bool loser, string message, SteamID chatter, SteamID chat)
         {
             _spinning = false;
-            var name = SteamNerd.ChatRoomChatters[chatter];
+            var name = SteamNerd.ChatterNames[chatter];
             SteamNerd.SendMessage(message, chat, true);
 
             if (loser)
@@ -408,7 +336,7 @@ namespace STEAMNERD.Modules
             _currentSpinner = _currentSpinner + 1 < _players.Count ? _currentSpinner + 1 : 0;
 
             var player = _players[_currentSpinner];
-            var name = SteamNerd.ChatRoomChatters[player];
+            var name = SteamNerd.ChatterNames[player];
 
             SteamNerd.SendMessage(string.Format("It's {0}'s turn to spin", name), chat, true);
         }
@@ -417,7 +345,7 @@ namespace STEAMNERD.Modules
         {
             var winner = _currentSpinner + 1 < _players.Count ? _currentSpinner + 1 : 0;
             var player = _players[winner];
-            var name = SteamNerd.ChatRoomChatters[player];
+            var name = SteamNerd.ChatterNames[player];
 
             SteamNerd.SendMessage(string.Format("{0} wins! They win ${1}", name, _pool), chat, true);
             _money[player] += _pool;
@@ -426,21 +354,19 @@ namespace STEAMNERD.Modules
             {
                 if (bet.Side == player)
                 {
-                    var better = SteamNerd.ChatRoomChatters[bet.Better];
+                    var better = SteamNerd.ChatterNames[bet.Better];
                     var amount = bet.Money * 2;
                     SteamNerd.SendMessage(string.Format("{0} wins ${1}", better, amount), chat, true);
 
                     _money[bet.Better] += amount;
                 }
             }
-
-            Save();
             Reset();
         }
 
         private void AddBet(SteamID chatter, SteamID chat, string side, int bet)
         {
-            var chatterName = SteamNerd.ChatRoomChatters[chatter];
+            var chatterName = SteamNerd.ChatterNames[chatter];
 
             if (bet <= 0)
             {
@@ -456,7 +382,7 @@ namespace STEAMNERD.Modules
 
             foreach (var player in _players)
             {
-                var name = SteamNerd.ChatRoomChatters[player].ToLower();
+                var name = SteamNerd.ChatterNames[player].ToLower();
 
                 if (name.Contains(side))
                 {

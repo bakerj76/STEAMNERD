@@ -117,6 +117,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Module.cs" />
+    <Compile Include="Modules\Help.cs" />
     <Compile Include="Modules\Joke.cs" />
     <Compile Include="Modules\Money.cs" />
     <Compile Include="Modules\Party.cs" />

@@ -21,7 +21,8 @@ namespace STEAMNERD
             steamNerd.AddModule(new TrollSlayer(steamNerd));
             steamNerd.AddModule(new Party(steamNerd));
             steamNerd.AddModule(new Roulette(steamNerd));
-            //steamNerd.AddModule(new Joke(steamNerd));
+            steamNerd.AddModule(new Money(steamNerd));
+            steamNerd.AddModule(new Help(steamNerd));
 
             steamNerd.Connect();
         }

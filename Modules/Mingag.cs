@@ -26,7 +26,7 @@ namespace STEAMNERD.Modules
             var mingag = new SteamID("STEAM_0:0:5153026");
 
             SteamNerd.SteamFriends.SendChatMessage(mingag, EChatEntryType.ChatMsg,
-                string.Format("{0}: {1}", SteamNerd.ChatRoomChatters[callback.ChatterID], callback.Message));
+                string.Format("{0}: {1}", SteamNerd.ChatterNames[callback.ChatterID], callback.Message));
         }
     }
 }

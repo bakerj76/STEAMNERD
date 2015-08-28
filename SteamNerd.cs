@@ -18,7 +18,7 @@ namespace STEAMNERD
 
         public readonly SteamFriends SteamFriends;
 
-        public Dictionary<SteamID, string> ChatRoomChatters;
+        public Dictionary<SteamID, string> ChatterNames;
         public SteamID CurrentChatRoom;
         public readonly SteamUser SteamUser;
 
@@ -30,7 +30,8 @@ namespace STEAMNERD
         private string _authCode;
         private string _twoFactorAuth;
 
-        private List<Module> _modules;
+        public List<Module> Modules;
+        private Dictionary<string, Module> _modulesByName;
 
         public SteamNerd(string user, string pass)
         {
@@ -43,10 +44,11 @@ namespace STEAMNERD
             SteamUser = _steamClient.GetHandler<SteamUser>();
             SteamFriends = _steamClient.GetHandler<SteamFriends>();
 
-            _modules = new List<Module>();
+            Modules = new List<Module>();
+            _modulesByName = new Dictionary<string, Module>();
             CurrentChatRoom = null;
 
-            ChatRoomChatters = new Dictionary<SteamID, string>();
+            ChatterNames = new Dictionary<SteamID, string>();
 
             #region Steam Client Callbacks
 
@@ -229,12 +231,12 @@ namespace STEAMNERD
             
             var friendID = callback.FriendID;
 
-            if (callback.State != EPersonaState.Offline && !ChatRoomChatters.ContainsKey(friendID))
+            if (callback.State != EPersonaState.Offline && !ChatterNames.ContainsKey(friendID))
             {
                 Console.WriteLine("Adding {0}", callback.Name);
-                ChatRoomChatters.Add(friendID, callback.Name);
+                ChatterNames.Add(friendID, callback.Name);
 
-                foreach (var module in _modules)
+                foreach (var module in Modules)
                 {
                     module.OnFriendChatEnter(callback);
                 }
@@ -243,7 +245,7 @@ namespace STEAMNERD
 
         private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
         {
-            foreach (var module in _modules)
+            foreach (var module in Modules)
             {
                 module.OnFriendMsg(callback);
             }
@@ -263,14 +265,14 @@ namespace STEAMNERD
                 case EChatMemberStateChange.Kicked:
                 case EChatMemberStateChange.Left:
                 {
-                    Console.WriteLine("Removing {0}", ChatRoomChatters[chatterID]);
+                    Console.WriteLine("Removing {0}", ChatterNames[chatterID]);
 
-                    foreach (var module in _modules)
+                    foreach (var module in Modules)
                     {
                         module.OnFriendChatLeave(callback);
                     }
 
-                    ChatRoomChatters.Remove(chatterID);
+                    ChatterNames.Remove(chatterID);
                     break;
                 }
             }
@@ -280,9 +282,16 @@ namespace STEAMNERD
         {
             if (callback.ChatMsgType != EChatEntryType.ChatMsg) return;
 
-            foreach (var module in _modules.Where(module => module.Match(callback)))
+            var args = callback.Message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var module in Modules.Where(module => module.Match(callback)))
             {
                 module.OnChatMsg(callback);
+            }
+
+            foreach (var module in Modules)
+            {
+                module.RunCommand(callback, args);
             }
         }
 
@@ -309,7 +318,7 @@ namespace STEAMNERD
 
             Console.WriteLine("Joined chat.");
 
-            foreach (var module in _modules)
+            foreach (var module in Modules)
             {
                 module.OnSelfChatEnter(callback);
             }
@@ -351,7 +360,31 @@ namespace STEAMNERD
 
         public void AddModule(Module module)
         {
-            _modules.Add(module);
+            Modules.Add(module);
+
+            if (module.Name != null)
+            {
+                var name = module.Name.ToLower().Trim();
+
+                if (name != "" && !_modulesByName.ContainsKey(name))
+                {
+                    _modulesByName[name] = module;
+                }
+            }
+        }
+
+        public Module GetModule(string name)
+        {
+            name = name.ToLower().Trim();
+
+            if (_modulesByName.Keys.Contains(name))
+            {
+                return _modulesByName[name];
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }

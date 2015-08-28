@@ -10,32 +10,57 @@ namespace STEAMNERD
         public string Name;
         public string Description;
         public List<Command> Commands;
-        public delegate void CommandCallback(SteamFriends.ChatMsgCallback callback);
+        public delegate void CommandCallback(SteamFriends.ChatMsgCallback callback, string[] args);
 
         public struct Command
         {
-            public string Name;
-            public string Help;
+            public string Match;
+            public string Description;
             public CommandCallback Callback;
         }
 
         protected Module(SteamNerd steamNerd)
         {
             SteamNerd = steamNerd;
+            Commands = new List<Command>();
         }
 
+        /// <summary>
+        /// Prints out help information to a chat
+        /// </summary>
+        /// <param name="chatRoom"></param>
         public void Help(SteamID chatRoom)
         {
-            var message1 = string.Format("{0}\n{1}", Name, Description);
-            var message2 = ".\n";
+            var message = string.Format("{0}\n{1}\n\n", Name, Description);
 
             foreach (var command in Commands)
             {
-                message2 += string.Format("{0,-15}- {1}", command.Name, command.Help);
+                message += string.Format("{0}{1,-15}{2}\n", SteamNerd.CommandChar, command.Match, command.Description);
             }
 
-            SteamNerd.SendMessage(message1, chatRoom, true);
-            SteamNerd.SendMessage(message2, chatRoom, true);
+            SteamNerd.SendMessage(message, chatRoom, true);
+        }
+
+        public void RegisterCommand(string match, string help, CommandCallback callback)
+        {
+            Commands.Add(new Command
+            {
+                Match = match,
+                Description = help,
+                Callback = callback
+            });
+        }
+
+        public void RunCommand(SteamFriends.ChatMsgCallback callback, string[] args)
+        {
+            foreach (var command in Commands)
+            {
+                var realCommandString = "." + command.Match;
+                if (command.Match == null || realCommandString == args[0])
+                {
+                    command.Callback(callback, args);
+                }
+            }
         }
 
         /// <summary>
@@ -59,7 +84,7 @@ namespace STEAMNERD
         /// </summary>
         /// <param name="callback"></param>
         /// <returns>If the module should run</returns>
-        public abstract bool Match(SteamFriends.ChatMsgCallback callback);
+        public virtual bool Match(SteamFriends.ChatMsgCallback callback) { return false; }
 
         /// <summary>
         /// When the bot gets a personal message
