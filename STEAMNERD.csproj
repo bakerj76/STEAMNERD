@@ -127,6 +127,7 @@
     <Compile Include="Modules\Mingag.cs" />
     <Compile Include="Modules\PersistentChat.cs" />
     <Compile Include="Modules\Roulette.cs" />
+    <Compile Include="Modules\Todo.cs" />
     <Compile Include="Modules\TrollSlayer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

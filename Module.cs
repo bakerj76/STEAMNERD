@@ -35,7 +35,7 @@ namespace STEAMNERD
 
             foreach (var command in Commands)
             {
-                message += string.Format("{0}{1,-15}{2}\n", SteamNerd.CommandChar, command.Match, command.Description);
+                message += string.Format("{0}{1,-50}{2}\n", SteamNerd.CommandChar, command.Match, command.Description);
             }
 
             SteamNerd.SendMessage(message, chatRoom, true);

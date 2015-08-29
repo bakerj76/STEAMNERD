@@ -10,7 +10,16 @@ namespace STEAMNERD
         static void Main(string[] args)
         {
             string user, password;
-            FancyLogIn(out user, out password);
+
+            if (args.Length == 1)
+            {
+                FancyLogIn(out user, out password);
+            }
+            else
+            {
+                user = args[0];
+                password = args[1];
+            }
 
             var steamNerd = new SteamNerd(user, password);
 
@@ -23,6 +32,7 @@ namespace STEAMNERD
             steamNerd.AddModule(new Roulette(steamNerd));
             steamNerd.AddModule(new Money(steamNerd));
             steamNerd.AddModule(new Help(steamNerd));
+            steamNerd.AddModule(new Todo(steamNerd));
 
             steamNerd.Connect();
         }

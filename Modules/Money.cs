@@ -11,7 +11,7 @@ namespace STEAMNERD.Modules
     {
         private const float SAVE_TIME = 30000f;
         private const int STARTING_MONEY = 200;
-        private static string PATH = @"stats.txt";
+        private const string PATH = @"stats.txt";
 
         private Dictionary<SteamID, int> _money;
         private Dictionary<SteamID, int> _loans;
@@ -52,9 +52,12 @@ namespace STEAMNERD.Modules
             _money = new Dictionary<SteamID, int>();
             _loans = new Dictionary<SteamID, int>();
 
+            _changed = false;
             _saveTimer = new Timer(SAVE_TIME);
             _saveTimer.Elapsed += (src, e) => Save();
             _saveTimer.Start();
+
+            Load();
         }
 
         /// <summary>
@@ -65,7 +68,6 @@ namespace STEAMNERD.Modules
             // Was there a change in money?
             if (_changed)
             {
-                Console.WriteLine("Saving...");
                 using (var fileStream = File.Open(PATH, FileMode.Create))
                 {
                     var writer = new BinaryWriter(fileStream);
@@ -165,9 +167,9 @@ namespace STEAMNERD.Modules
             var name = SteamNerd.ChatterNames[chatter];
             var money = _money[chatter];
             var loans = _loans[chatter];
-            long amount;
+            int amount;
 
-            if (!long.TryParse(args[1], out amount))
+            if (!int.TryParse(args[1], out amount))
             {
                 SteamNerd.SendMessage(string.Format("{0}, that's not a number", name), callback.ChatRoomID, true);
                 return;
@@ -179,8 +181,8 @@ namespace STEAMNERD.Modules
                 return;
             }
 
-            AddMoney(chatter, callback.ChatRoomID, (int)amount);
-            AddLoan(chatter, callback.ChatRoomID, (int)amount);
+            AddMoney(chatter, callback.ChatRoomID, amount);
+            AddLoan(chatter, callback.ChatRoomID, amount);
         }
 
         public void Payback(SteamFriends.ChatMsgCallback callback, string[] args)
@@ -247,9 +249,14 @@ namespace STEAMNERD.Modules
             var name = SteamNerd.ChatterNames[steamID];
             var money = _money[steamID];
 
-            if ((long)money + amount > int.MaxValue)
+            try
+            {
+                int test = checked(money + amount);
+            }
+            catch (OverflowException)
             {
                 SteamNerd.SendMessage(string.Format("Whoa, {0}, you've got way too much money", name), chat, true);
+                return;
             }
 
             _money[steamID] += amount;
@@ -261,9 +268,14 @@ namespace STEAMNERD.Modules
             var name = SteamNerd.ChatterNames[steamID];
             var loans = _loans[steamID];
 
-            if ((long)loans + amount > int.MaxValue)
+            try
+            {
+                int test = checked(loans + amount);
+            }
+            catch (OverflowException)
             {
                 SteamNerd.SendMessage(string.Format("Whoa, {0}, you've borrowed way too much", name), chat, true);
+                return;
             }
 
             _loans[steamID] += amount;

@@ -8,7 +8,6 @@ namespace STEAMNERD.Modules
 {
     class Roulette : Module
     {
-        private static string path = @"stats.txt";
         private const int STARTING_MONEY = 200;
 
         private Dictionary<SteamID, int> _money;
@@ -85,81 +84,6 @@ namespace STEAMNERD.Modules
                 _loans[callback.ChatterID] = 0;
             }
 
-            if (message == "!loans")
-            {
-                var loan = _loans[callback.ChatterID];
-                SteamNerd.SendMessage(string.Format("{0} has ${1} in loans", chatter, loan), callback.ChatRoomID, true);
-                return;
-            }
-
-            else if (message.StartsWith("!loan "))
-            {
-                int amount;
-                if (!int.TryParse(message.Substring(6), out amount))
-                {
-                    SteamNerd.SendMessage(string.Format("{0}, that's not a number.", chatter), callback.ChatRoomID, true);
-                    return;
-                }
-
-                if (amount < 0)
-                {
-                    SteamNerd.SendMessage(string.Format("{0}, you can't borrow negative money", chatter), callback.ChatRoomID, true);
-                    return;
-                }
-
-                _money[callback.ChatterID] += amount;
-                _loans[callback.ChatterID] += amount;
-                return;
-            }
-
-            else if (message.StartsWith("!payback"))
-            {
-                int amount;
-                if (!int.TryParse(message.Substring(9), out amount))
-                {
-                    SteamNerd.SendMessage(string.Format("{0}, that's not a number.", chatter), callback.ChatRoomID, true);
-                    return;
-                }
-
-                if (amount < 0)
-                {
-                    SteamNerd.SendMessage(string.Format("{0}, you can't payback negative money", chatter), callback.ChatRoomID, true);
-                    return;
-                }
-
-                var borrowed = _loans[callback.ChatterID];
-                var money = _money[callback.ChatterID];
-
-                if (borrowed == 0)
-                {
-                    SteamNerd.SendMessage(string.Format("{0}, you don't have any loans!", chatter), callback.ChatRoomID, true);
-                    return;
-                }
-
-                if (amount > borrowed)
-                {
-                    amount = borrowed;
-                }
-
-                if (money < amount)
-                {
-                    SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}!", chatter, amount), callback.ChatRoomID, true);
-                    return;
-                }
-
-                _loans[callback.ChatterID] -= amount;
-                _money[callback.ChatterID] -= amount;
-
-                SteamNerd.SendMessage(string.Format("{0} paid back ${1}.", chatter, amount), callback.ChatRoomID, true);
-                return;
-            }
-
-            // Check money
-            else if (message == "!money")
-            {
-                SteamNerd.SendMessage(string.Format("{0} has ${1}", chatter, _money[callback.ChatterID]), callback.ChatRoomID, true);
-                return;
-            }
 
             // Check if this is the correct person to be spinning at the correct time
             else if (message == "!spin" && _isInProgress && _betTimerOver && !_spinning && callback.ChatterID == _players[_currentSpinner])

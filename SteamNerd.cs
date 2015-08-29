@@ -88,7 +88,7 @@ namespace STEAMNERD
 
             while (IsRunning)
             {
-                _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1f));
+               _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1f));
             }
 
             Console.ReadKey(true);
@@ -282,7 +282,21 @@ namespace STEAMNERD
         {
             if (callback.ChatMsgType != EChatEntryType.ChatMsg) return;
 
-            var args = callback.Message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var listArgs = callback.Message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+            for (var i = 0; i < listArgs.Count; i++)
+            {
+                if (listArgs[i].Contains('\n'))
+                {
+                    var split = listArgs[i].Replace("\n", "\n\0").Split('\0');
+                    listArgs.RemoveAt(i);
+                    listArgs.InsertRange(i, split);
+
+                    i += split.Length - 1;
+                }
+            }
+            
+            var args = listArgs.ToArray();
 
             foreach (var module in Modules.Where(module => module.Match(callback)))
             {
@@ -330,8 +344,6 @@ namespace STEAMNERD
 
             foreach (var friend in callback.FriendList)
             {
-                Console.WriteLine(friend.Relationship);
-
                 if (friend.Relationship == EFriendRelationship.RequestRecipient)
                 {
                     Console.WriteLine("Adding Friend {0}.", friend.SteamID);
