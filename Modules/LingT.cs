@@ -13,6 +13,8 @@ namespace STEAMNERD.Modules
 
         public LingT(SteamNerd steamNerd) : base(steamNerd)
         {
+            Name = "Greetings";
+            Description = "A friendly greeting.";
             _rand = new Random();
         }
 

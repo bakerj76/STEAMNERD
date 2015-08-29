@@ -11,15 +11,17 @@ namespace STEAMNERD.Modules
     {
         public Party(SteamNerd steamNerd) : base(steamNerd)
         {
+            Name = "Party";
+            Description = "Let's party";
 
+            RegisterCommand(
+                "party",
+                "Invites everyone for a party.",
+                LetsParty
+            );
         }
 
-        public override bool Match(SteamFriends.ChatMsgCallback callback)
-        {
-            return callback.Message.ToLower() == "!party";
-        }
-
-        public override void OnChatMsg(SteamFriends.ChatMsgCallback callback)
+        public void LetsParty(SteamFriends.ChatMsgCallback callback, string[] args)
         {
             var steamFriends = SteamNerd.SteamFriends;
             var inviteCount = 0;

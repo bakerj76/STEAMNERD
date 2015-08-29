@@ -12,7 +12,8 @@ namespace STEAMNERD.Modules
     {
         public PersistentChat(SteamNerd steamNerd) : base(steamNerd)
         {
-
+            Name = "Persistent Chat";
+            Description = "Message xXxTrollSlayerxXx to get invited to the chat.";
         }
 
         public override bool Match(SteamFriends.ChatMsgCallback callback)

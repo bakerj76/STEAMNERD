@@ -15,6 +15,8 @@ namespace STEAMNERD.Modules
 
         public DiceRoll(SteamNerd steamNerd) : base(steamNerd)
         {
+            Name = "Dice Roll";
+            Description = "Rolls dice. Usage: xdy where x is the number of faces and y is the number of dice.";
         }
 
         public static bool IsDiceRoll(string message)

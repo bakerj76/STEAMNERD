@@ -284,11 +284,21 @@ namespace STEAMNERD.Modules
 
         public int GetPlayerMoney(SteamID steamID)
         {
+            if (!_money.ContainsKey(steamID))
+            {
+                AddSteamID(steamID);
+            }
+
             return _money[steamID];
         }
 
         public int GetPlayerLoans(SteamID steamID)
         {
+            if (!_money.ContainsKey(steamID))
+            {
+                AddSteamID(steamID);
+            }
+
             return _loans[steamID];
         }
     }

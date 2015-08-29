@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Diagnostics;
+using System.Linq;
+using System.Timers;
 using SteamKit2;
 
 namespace STEAMNERD.Modules
@@ -9,13 +10,20 @@ namespace STEAMNERD.Modules
     class TrollSlayer : Module
     {
         private Random _rand;
-        private List<SteamID> _kickable;
         private Dictionary<SteamID, Stopwatch> _cooldowns;
 
         public TrollSlayer(SteamNerd steamNerd) : base(steamNerd)
         {
+            Name = "Troll Slayer";
+            Description = "Slays trolls.";
+
+            RegisterCommand(
+                "slaytroll",
+                "Slays the troll in this chatroom.",
+                SlayTroll
+            );
+
             _rand = new Random();
-            _kickable = new List<SteamID>();
             _cooldowns = new Dictionary<SteamID, Stopwatch>();
 
             foreach (var chatter in SteamNerd.ChatterNames.Keys)
@@ -23,17 +31,10 @@ namespace STEAMNERD.Modules
                 var stopwatch = new Stopwatch();
                 stopwatch.Reset();
                 _cooldowns[chatter] = new Stopwatch();
-
-                _kickable.Add(chatter);
             }
         }
 
-        public override bool Match(SteamFriends.ChatMsgCallback callback)
-        {
-            return callback.Message.ToLower() == "!slaytroll";
-        }
-
-        public override void OnChatMsg(SteamFriends.ChatMsgCallback callback)
+        public void SlayTroll(SteamFriends.ChatMsgCallback callback, string[] args)
         {
             var twoMinutes = TimeSpan.FromMinutes(2);
 
@@ -62,22 +63,29 @@ namespace STEAMNERD.Modules
                 return;
             }
 
-            var numKeys = _kickable.Count;
-            var troll = _kickable[_rand.Next(numKeys)];
+            var chatters = SteamNerd.ChatterNames.Keys.ToList();
 
             // Don't kick yourself
-            while (troll == SteamNerd.SteamUser.SteamID)
-            {
-                troll = _kickable[_rand.Next(numKeys)];
-            }
+            chatters.Remove(SteamNerd.SteamUser.SteamID);
+            
+            var numKeys = chatters.Count;
+            var troll = chatters[_rand.Next(numKeys)];
 
             // Put this punk on cooldown
             timer.Reset();
             timer.Start();
 
             SteamNerd.SendMessage(string.Format("SLAYING TROLL: {0}", SteamNerd.ChatterNames[troll]), callback.ChatRoomID, true);
-            
-            SteamNerd.SteamFriends.KickChatMember(callback.ChatRoomID, troll);
+
+            var delay = new Timer(1000);
+            delay.AutoReset = false;
+            delay.Elapsed += (src, e) => 
+            {
+                SteamNerd.SteamFriends.KickChatMember(callback.ChatRoomID, troll);
+                (src as Timer).Dispose();
+            };
+
+            delay.Start();
         }
 
         public override void OnFriendChatEnter(SteamFriends.PersonaStateCallback callback)
@@ -85,24 +93,6 @@ namespace STEAMNERD.Modules
             if (!_cooldowns.Keys.Contains(callback.FriendID))
             {
                 _cooldowns[callback.FriendID] = new Stopwatch();
-            }
-
-            if (!_kickable.Contains(callback.FriendID))
-            {
-                _kickable.Add(callback.FriendID);
-            }
-        }
-
-        public override void OnFriendChatLeave(SteamFriends.ChatMemberInfoCallback callback)
-        {
-            var chatterID = callback.StateChangeInfo.ChatterActedOn;
-
-            Console.WriteLine("Removing {0} from troll list.", SteamNerd.ChatterNames[chatterID]);
-            _kickable.Remove(chatterID);
-
-            foreach (var steamID in _kickable)
-            {
-                Console.WriteLine(SteamNerd.ChatterNames[steamID]);
             }
         }
     }

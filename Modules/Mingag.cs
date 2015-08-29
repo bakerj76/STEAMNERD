@@ -11,7 +11,8 @@ namespace STEAMNERD.Modules
     {
         public Mingag(SteamNerd steamNerd) : base(steamNerd)
         {
-
+            Name = "Mingag";
+            Description = "If you say \"Mingag\", it alerts Mingag that you're talking shit. Also, it logs Mingag's chat to blackmail him.";
         }
 
         public override bool Match(SteamFriends.ChatMsgCallback callback)

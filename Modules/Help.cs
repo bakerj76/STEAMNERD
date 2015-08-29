@@ -1,4 +1,5 @@
-﻿using SteamKit2;
+﻿using System.Linq;
+using SteamKit2;
 
 namespace STEAMNERD.Modules
 {
@@ -38,7 +39,9 @@ namespace STEAMNERD.Modules
             }
             else
             {
-                var module = SteamNerd.GetModule(args[1]);
+                var modString = args.Skip(1).Aggregate((mod, next) => mod + " " + next);
+
+                var module = SteamNerd.GetModule(modString);
 
                 if (module == null)
                 {

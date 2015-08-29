@@ -210,6 +210,7 @@ namespace STEAMNERD.Modules
                 _todoList.InsertRange(position - 1, temp);
             }
 
+            _changed = true;
         }
 
         private void RemoveTodo(SteamID chat, string[] args)
@@ -227,6 +228,7 @@ namespace STEAMNERD.Modules
             }
 
             _todoList.RemoveAt(position - 1);
+            _changed = true;
         }
     }
 }
