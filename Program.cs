@@ -33,6 +33,7 @@ namespace STEAMNERD
             steamNerd.AddModule(new Roulette(steamNerd));
             steamNerd.AddModule(new Help(steamNerd));
             steamNerd.AddModule(new Todo(steamNerd));
+            steamNerd.AddModule(new LetterGames(steamNerd));
 
             steamNerd.Connect();
         }

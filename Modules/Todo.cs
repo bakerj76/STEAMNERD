@@ -20,28 +20,28 @@ namespace STEAMNERD.Modules
             Name = "TODO";
             Description = "Things to do.";
 
-            RegisterCommand(
+            AddCommand(
                 "todo",
                 "Print the todo list.",
                 GetTodo
             );
 
             // Dummy command
-            RegisterCommand(
+            AddCommand(
                 "todo add [thing to do]",
                 "Adds a thing to do to the todo list.",
                 null
             );
 
             // Dummy command
-            RegisterCommand(
+            AddCommand(
                 "todo add [position] [thing to do]",
                 "Adds a thing to do to the todo list at a position.",
                 null
             );
 
             // Dummy command
-            RegisterCommand(
+            AddCommand(
                 "todo remove [position]",
                 "Adds a thing to do to the todo list.",
                 null

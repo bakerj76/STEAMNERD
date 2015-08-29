@@ -119,6 +119,7 @@
     <Compile Include="Module.cs" />
     <Compile Include="Modules\Help.cs" />
     <Compile Include="Modules\Joke.cs" />
+    <Compile Include="Modules\LetterGames.cs" />
     <Compile Include="Modules\Money.cs" />
     <Compile Include="Modules\Party.cs" />
     <Compile Include="Modules\DiceRoll.cs" />

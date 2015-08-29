@@ -24,26 +24,26 @@ namespace STEAMNERD.Modules
             Name = "Money";
             Description = "Handles player money.";
 
-            RegisterCommand(
+            AddCommand(
                 "money",
                 "View how much money you have.",
                 PrintMoney
             );
 
-            RegisterCommand(
+            AddCommand(
                 "loans",
                 "View how much you're in debt.",
                 PrintLoans
             );
 
-            RegisterCommand(
+            AddCommand(
                 "loan",
                 string.Format("Get a loan. Usage: {0}loan [money]", SteamNerd.CommandChar),
                 GetLoan
             );
 
 
-            RegisterCommand(
+            AddCommand(
                 "payback",
                 string.Format("Payback your debt. Usage: {0}payback [money]", SteamNerd.CommandChar),
                 Payback

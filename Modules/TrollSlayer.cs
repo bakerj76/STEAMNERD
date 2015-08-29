@@ -17,7 +17,7 @@ namespace STEAMNERD.Modules
             Name = "Troll Slayer";
             Description = "Slays trolls.";
 
-            RegisterCommand(
+            AddCommand(
                 "slaytroll",
                 "Slays the troll in this chatroom.",
                 SlayTroll

@@ -25,23 +25,7 @@ namespace STEAMNERD
             Commands = new List<Command>();
         }
 
-        /// <summary>
-        /// Prints out help information to a chat
-        /// </summary>
-        /// <param name="chatRoom"></param>
-        public void Help(SteamID chatRoom)
-        {
-            var message = string.Format("{0}\n{1}\n\n", Name, Description);
-
-            foreach (var command in Commands)
-            {
-                message += string.Format("{0}{1,-50}{2}\n", SteamNerd.CommandChar, command.Match, command.Description);
-            }
-
-            SteamNerd.SendMessage(message, chatRoom, true);
-        }
-
-        public void RegisterCommand(string match, string help, CommandCallback callback)
+        public void AddCommand(string match, string help, CommandCallback callback)
         {
             Commands.Add(new Command
             {
@@ -56,7 +40,7 @@ namespace STEAMNERD
             foreach (var command in Commands)
             {
                 var realCommandString = "." + command.Match;
-                if (command.Match == null || realCommandString == args[0])
+                if (command.Match == null || command.Match == "" || realCommandString == args[0])
                 {
                     command.Callback(callback, args);
                 }

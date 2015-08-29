@@ -14,7 +14,7 @@ namespace STEAMNERD.Modules
             Name = "Party";
             Description = "Let's party";
 
-            RegisterCommand(
+            AddCommand(
                 "party",
                 "Invites everyone for a party.",
                 LetsParty

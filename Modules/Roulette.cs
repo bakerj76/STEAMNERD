@@ -19,7 +19,7 @@ namespace STEAMNERD.Modules
         private int _currentBet;
         private int _pool;
 
-        private bool _isInProgress;
+        private bool _inProgress;
         private bool _betTimerOver;
         private bool _spinning;
 
@@ -39,19 +39,19 @@ namespace STEAMNERD.Modules
             Name = "Roulette";
             Description = "A friendly game of roulette.";
 
-            RegisterCommand(
+            AddCommand(
                 "enter",
                 string.Format("Enters the roulette game. Usage: {0}enter [money] or {0}enter", SteamNerd.CommandChar),
                 Enter
             );
 
-            RegisterCommand(
+            AddCommand(
                 "bet",
                 string.Format("Bet on a person in an ongoing roulette game. Usage: {0}bet [player] [money]", SteamNerd.CommandChar),
                 DoTheBet
             );
 
-            RegisterCommand(
+            AddCommand(
                 "spin",
                 "Spin!",
                 Spin
@@ -70,7 +70,7 @@ namespace STEAMNERD.Modules
             var chat = callback.ChatRoomID;
 
             // If someone enters at the right time (less than 2 players and a game isn't in progress)
-            if (_players.Count < 2 && !_isInProgress)
+            if (_players.Count < 2 && !_inProgress)
             {
                 if (_players.Contains(callback.ChatterID))
                 {
@@ -121,7 +121,7 @@ namespace STEAMNERD.Modules
                     
                     SteamNerd.SendMessage(string.Format("{0} has entered, matching ${1}. How brave...", name, _currentBet), chat, true);
 
-                    _isInProgress = true;
+                    _inProgress = true;
                     _players.Add(callback.ChatterID);
                     StartBetting(callback.ChatRoomID);
                 }
@@ -136,7 +136,7 @@ namespace STEAMNERD.Modules
 
         public void Spin(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            if (_isInProgress && _betTimerOver && !_spinning && callback.ChatterID == _players[_currentSpinner])
+            if (_inProgress && _betTimerOver && !_spinning && callback.ChatterID == _players[_currentSpinner])
             {
                 PlayerSpin(callback.ChatterID, callback.ChatRoomID);
             }
@@ -149,7 +149,7 @@ namespace STEAMNERD.Modules
             var name = SteamNerd.ChatterNames[chatter];
 
             // If someone bets early
-            if (!_isInProgress)
+            if (!_inProgress)
             {
                 SteamNerd.SendMessage(string.Format("There's no match to bet on, {0}. Good job, idiot.", name), chat, true);
             }
@@ -181,7 +181,7 @@ namespace STEAMNERD.Modules
 
             // Set flags
             _betTimerOver = false;
-            _isInProgress = true;
+            _inProgress = true;
 
             // Calculate the player pool
             _pool = _currentBet * 2;
@@ -327,7 +327,7 @@ namespace STEAMNERD.Modules
 
             _pool = 0;
 
-            _isInProgress = false;
+            _inProgress = false;
             _betTimerOver = false;
             _spinning = false;
         }

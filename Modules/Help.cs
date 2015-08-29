@@ -10,7 +10,7 @@ namespace STEAMNERD.Modules
             Name = "Help";
             Description = "Helps you get help.";
 
-            RegisterCommand(
+            AddCommand(
                 "help",
                 string.Format("Helps you get help from Help. Usage: {0}help or {0}help [module]", SteamNerd.CommandChar),
                 GetHelp
@@ -49,8 +49,29 @@ namespace STEAMNERD.Modules
                     return;
                 }
 
-                module.Help(chat);
+                ModuleHelp(module, chat);
             }
+        }
+
+        /// <summary>
+        /// Prints out help information to a chat
+        /// </summary>
+        /// <param name="chatRoom"></param>
+        public void ModuleHelp(Module module, SteamID chatRoom)
+        {
+            var message = string.Format("{0}\n{1}\n\n", Name, Description);
+
+            foreach (var command in module.Commands)
+            {
+                if (command.Match == "" || command.Description == "")
+                {
+                    continue;
+                }
+
+                message += string.Format("{0}{1,-50}{2}\n", SteamNerd.CommandChar, command.Match, command.Description);
+            }
+
+            SteamNerd.SendMessage(message, chatRoom, true);
         }
     }
 }
