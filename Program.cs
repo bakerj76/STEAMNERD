@@ -11,7 +11,7 @@ namespace STEAMNERD
         {
             string user, password;
 
-            if (args.Length == 1)
+            if (args.Length == 0)
             {
                 FancyLogIn(out user, out password);
             }
