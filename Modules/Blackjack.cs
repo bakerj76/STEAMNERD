@@ -652,6 +652,11 @@ namespace STEAMNERD.Modules
             {
                 _betsPlaced++;
             }
+            else
+            {
+                // Payback the previous bet
+                _moneyModule.AddMoney(chatter, chat, better.Bet);
+            }
 
             better.Bet = amount;
             _moneyModule.AddMoney(chatter, chat, -amount);
