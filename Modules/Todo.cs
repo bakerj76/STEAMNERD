@@ -167,6 +167,11 @@ namespace STEAMNERD.Modules
 
         private void AddTodo(SteamID chat, string[] args)
         {
+            if (args.Length < 3)
+            {
+                return;
+            }
+
             int position;
             if (int.TryParse(args[2], out position))
             {

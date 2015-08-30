@@ -100,7 +100,14 @@ namespace STEAMNERD.Modules
 
         public void Rules(SteamFriends.ChatMsgCallback callback)
         {
-            SteamNerd.SendMessage(string.Format("If you type '{0}', you die!", _bannedLetter), callback.ChatRoomID, true);
+            if (_inProgress)
+            {
+                SteamNerd.SendMessage(string.Format("If you type '{0}', you die!", _bannedLetter), callback.ChatRoomID, true);
+            }
+            else
+            {
+                SteamNerd.SendMessage("No game in progress.", callback.ChatRoomID, true);
+            }
         }
 
         public void CheckForLetter(SteamFriends.ChatMsgCallback callback, string[] args)

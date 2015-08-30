@@ -18,10 +18,10 @@ namespace STEAMNERD
 
         public readonly SteamFriends SteamFriends;
 
-        public Dictionary<SteamID, string> ChatterNames;
+        public Dictionary<SteamID, string> ChatterNames { get; private set; }
         public SteamID CurrentChatRoom;
-        public readonly SteamUser SteamUser;
 
+        public readonly SteamUser SteamUser;
         private readonly SteamClient _steamClient;
         private readonly CallbackManager _manager;
 
@@ -223,6 +223,7 @@ namespace STEAMNERD
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
             SteamFriends.SetPersonaState(EPersonaState.Online);
+            SteamFriends.SetPersonaName("xXxTrollSlayerxXx");
         }
 
         private void OnPersonaState(SteamFriends.PersonaStateCallback callback)

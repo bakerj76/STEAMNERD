@@ -23,17 +23,19 @@ namespace STEAMNERD
 
             var steamNerd = new SteamNerd(user, password);
 
+            steamNerd.AddModule(new Money(steamNerd));
             steamNerd.AddModule(new LingT(steamNerd));
             steamNerd.AddModule(new DiceRoll(steamNerd));
             steamNerd.AddModule(new PersistentChat(steamNerd));
             steamNerd.AddModule(new Mingag(steamNerd));
             steamNerd.AddModule(new TrollSlayer(steamNerd));
             steamNerd.AddModule(new Party(steamNerd));
-            steamNerd.AddModule(new Money(steamNerd));
             steamNerd.AddModule(new Roulette(steamNerd));
             steamNerd.AddModule(new Help(steamNerd));
             steamNerd.AddModule(new Todo(steamNerd));
             steamNerd.AddModule(new LetterGames(steamNerd));
+            steamNerd.AddModule(new AnimeRecommendationService(steamNerd));
+            steamNerd.AddModule(new Blackjack(steamNerd));
 
             steamNerd.Connect();
         }

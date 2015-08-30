@@ -27,7 +27,7 @@ namespace STEAMNERD.Modules
         private Timer[] _countdown;
         private Timer _delay;
 
-        private struct Bet
+        public struct Bet
         {
             public SteamID Better;
             public SteamID Side;
@@ -83,6 +83,7 @@ namespace STEAMNERD.Modules
                     if (args.Length < 2)
                     {
                         SteamNerd.SendMessage(string.Format("Usage: {0}enter [money]", SteamNerd.CommandChar), chat, true);
+                        return;
                     }
 
                     int amount;
@@ -106,7 +107,7 @@ namespace STEAMNERD.Modules
 
                     _currentBet = amount;
                     _moneyModule.AddMoney(chatter, chat, -amount);
-                    SteamNerd.SendMessage(string.Format("{0} bet ${1}. Type !enter to join and match it.", name, amount), chat, true);
+                    SteamNerd.SendMessage(string.Format("{0} bet ${1}. Type {2}enter to join and match it.", name, amount, SteamNerd.CommandChar), chat, true);
                     _players.Add(chatter);
                 }
                 else if (_players.Count == 1)
