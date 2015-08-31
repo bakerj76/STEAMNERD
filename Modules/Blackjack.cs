@@ -15,7 +15,7 @@ namespace STEAMNERD.Modules
         public enum State { NoGame, WaitingForPlayers, Betting, Starting, PlayerTurn, DealerTurn }
         public enum Suit { Clubs, Diamonds, Hearts, Spades }
         public enum Rank { Ace = 1, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King }
-        public enum HandState { None, Stand, DoubleDown, Surrender, Blackjack, Bust, AceSplit }
+        public enum HandState { None, Stand, DoubleDown, Surrender, Blackjack, Bust, AceSplit, Charlie }
 
         private Money _moneyModule;
         private Random _rand;
@@ -537,6 +537,19 @@ namespace STEAMNERD.Modules
                             }
                             break;
 
+                        case HandState.Charlie:
+                            if (!dealerNatural)
+                            {
+                                winnings *= 2;
+                                message += string.Format(format, j, hand, "8 Card Charlie");
+                            }
+                            else
+                            {
+                                winnings = 0;
+                                message += string.Format(format, j, hand, "8 Card Charlie Loss");
+                            }
+                            break;
+                        
                         default:
                             if (dealerBusts || handValue > dealerValue)
                             {
@@ -724,6 +737,11 @@ namespace STEAMNERD.Modules
                 hand.State = HandState.Bust;
             }
 
+            if (hand.Cards.Count == 8 && hand.State != HandState.Bust)
+            {
+                hand.State = HandState.Charlie;
+            }
+
             PrintPlayersHands(playerID, chat);
             CheckHands(callback);
         }
@@ -769,7 +787,7 @@ namespace STEAMNERD.Modules
             var handNum = ParseHand(player, args);
             var hand = player.Hands[handNum];
 
-            if (hand.State != HandState.None)
+            if (hand.State != HandState.None || hand.Cards.Count > 2)
             {
                 var errMsg = string.Format("{0}, you can't double down with this hand.", name);
                 SteamNerd.SendMessage(errMsg, chat, true);

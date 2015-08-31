@@ -11,7 +11,11 @@ namespace STEAMNERD.Modules
     {
         private const float SAVE_TIME = 30000f;
         private const int STARTING_MONEY = 200;
-        private const string PATH = @"stats.txt";
+        private static readonly string PATH = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            @"SteamNerd"
+        );
+        private const string FILE_NAME = @"money.txt";
 
         private Dictionary<SteamID, int> _money;
         private Dictionary<SteamID, int> _loans;
@@ -68,7 +72,9 @@ namespace STEAMNERD.Modules
             // Was there a change in money?
             if (_changed)
             {
-                using (var fileStream = File.Open(PATH, FileMode.Create))
+                var path = Path.Combine(PATH, FILE_NAME);
+
+                using (var fileStream = File.Open(path, FileMode.Create))
                 {
                     var writer = new BinaryWriter(fileStream);
                     writer.Write(_money.Count);
@@ -93,13 +99,20 @@ namespace STEAMNERD.Modules
         /// </summary>
         private void Load()
         {
-            if (!File.Exists(PATH))
+            var path = Path.Combine(PATH, FILE_NAME);
+
+            if (!Directory.Exists(PATH))
             {
-                File.Create(PATH);
+                Directory.CreateDirectory(PATH);
+            }
+
+            if (!File.Exists(path))
+            {
+                File.Create(path);
                 return;
             }
 
-            using (var fileStream = File.Open(PATH, FileMode.Open))
+            using (var fileStream = File.Open(path, FileMode.Open))
             {
                 var reader = new BinaryReader(fileStream);
                 uint count = 0;
