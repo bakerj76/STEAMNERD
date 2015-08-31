@@ -178,9 +178,9 @@ namespace STEAMNERD.Modules
 
             
 
-            var message = string.Format("The votes are in:\n " +
-                "Ayes: {0} ({1:P})\n" +
-                "Nays: {2} ({3:P})",
+            var message = string.Format("The votes are in:\n" +
+                "Ayes: {0} ({1:P2})\n" +
+                "Nays: {2} ({3:P2})",
                 _ayes, ayePercent, _nays, nayPercent);
 
             SteamNerd.SendMessage(message, chat, true);

@@ -63,13 +63,7 @@ namespace STEAMNERD.Modules
                 return;
             }
 
-            var chatters = SteamNerd.ChatterNames.Keys.ToList();
-
-            // Don't kick yourself
-            chatters.Remove(SteamNerd.SteamUser.SteamID);
-            
-            var numKeys = chatters.Count;
-            var troll = chatters[_rand.Next(numKeys)];
+            var troll = callback.ChatterID;
 
             // Put this punk on cooldown
             timer.Reset();
