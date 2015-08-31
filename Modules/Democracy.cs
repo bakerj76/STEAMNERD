@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
 using SteamKit2;
@@ -87,14 +88,14 @@ namespace STEAMNERD.Modules
             if (_voting || args.Length < 2) return;
 
             var chat = callback.ChatRoomID;
-            var kickeeName = args.Skip(1).Aggregate((current, next) => current + " " + next);
+            var kickeeName = args.Skip(1).Aggregate((current, next) => current + " " + next.ToLower());
             var name = SteamNerd.ChatterNames[callback.ChatterID];
 
             _kickee = null;
 
             foreach (var chatterKV in SteamNerd.ChatterNames)
             {
-                if (chatterKV.Value.Contains(kickeeName))
+                if (chatterKV.Value.ToLower().Contains(kickeeName))
                 {
                     _kickee = chatterKV.Key;
                     break;
@@ -150,11 +151,15 @@ namespace STEAMNERD.Modules
                 _nays++;
                 SteamNerd.SendMessage(string.Format("{0} voted nay", name), callback.ChatRoomID, true);
             }
+            else
+            {
+                return;
+            }
 
 
             _voters.Add(callback.ChatterID);
 
-            if (_voters.Count == SteamNerd.ChatterNames.Count)
+            if (_voters.Count == SteamNerd.ChatterNames.Count - 1)
             {
                 _voteTimer.Stop();
                 TallyVotes(callback);
@@ -186,7 +191,7 @@ namespace STEAMNERD.Modules
             var chatterCount = SteamNerd.ChatterNames.Count - 1;
 
             // 50% of chatters need to vote
-            if (total < chatterCount / 2)
+            if (total < (chatterCount + 1) / 2)
             {
                 SteamNerd.SendMessage("50% of the chatters need to vote!", chat, true);
                 return;
