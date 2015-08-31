@@ -63,11 +63,10 @@ namespace STEAMNERD.Modules
         }
 
         /// <summary>
-        /// Save everybody's money
+        /// Save the todo list
         /// </summary>
         private void Save()
         {
-            // Was there a change in money?
             if (_changed)
             {
                 var path = Path.Combine(PATH, FILE_NAME);
@@ -90,7 +89,7 @@ namespace STEAMNERD.Modules
         }
 
         /// <summary>
-        /// Load everybody's money
+        /// Load the todo list
         /// </summary>
         private void Load()
         {

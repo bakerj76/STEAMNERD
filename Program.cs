@@ -36,6 +36,7 @@ namespace STEAMNERD
             steamNerd.AddModule(new LetterGames(steamNerd));
             steamNerd.AddModule(new AnimeRecommendationService(steamNerd));
             steamNerd.AddModule(new Blackjack(steamNerd));
+            steamNerd.AddModule(new Democracy(steamNerd));
 
             steamNerd.Connect();
         }

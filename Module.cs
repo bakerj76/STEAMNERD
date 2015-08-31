@@ -42,7 +42,10 @@ namespace STEAMNERD
                 var realCommandString = "." + command.Match;
                 if (command.Match == null || command.Match == "" || realCommandString == args[0])
                 {
-                    command.Callback(callback, args);
+                    if (command.Callback != null)
+                    {
+                        command.Callback(callback, args);
+                    }
                 }
             }
         }
