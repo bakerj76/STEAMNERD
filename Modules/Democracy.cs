@@ -62,10 +62,7 @@ namespace STEAMNERD.Modules
         /// <param name="args"></param>
         public void Vote(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            if (_voting || args.Length < 2)
-            {
-                return;
-            }
+            if (_voting || args.Length < 2) return;
 
             var sentence = args.Skip(1).Aggregate((current, next) => current + " " + next);
             sentence = sentence.Trim();
@@ -81,7 +78,50 @@ namespace STEAMNERD.Modules
 
             _voteTimer = new Timer(30000);
             _voteTimer.AutoReset = false;
-            _voteTimer.Elapsed += (src, e) => EndVote(callback);
+            _voteTimer.Elapsed += (src, e) => TallyVotes(callback);
+            _voteTimer.Start();
+        }
+
+        public void VoteKick(SteamFriends.ChatMsgCallback callback, string[] args)
+        {
+            if (_voting || args.Length < 2) return;
+
+            var chat = callback.ChatRoomID;
+            var kickeeName = args.Skip(1).Aggregate((current, next) => current + " " + next);
+            var name = SteamNerd.ChatterNames[callback.ChatterID];
+
+            _kickee = null;
+
+            foreach (var chatterKV in SteamNerd.ChatterNames)
+            {
+                if (chatterKV.Value.Contains(kickeeName))
+                {
+                    _kickee = chatterKV.Key;
+                    break;
+                }
+            }
+
+            if (_kickee == null)
+            {
+                SteamNerd.SendMessage(string.Format("{0} not found!", kickeeName), chat, true);
+                return;
+            }
+
+            SteamNerd.SendMessage(string.Format("{0} wants to kick {1}! Type aye or nay to vote.", name, SteamNerd.ChatterNames[_kickee]), callback.ChatRoomID, true);
+
+            // Reset ayes and nays
+            _ayes = 1;
+            _nays = 0;
+
+            _voting = true;
+
+            // Obviously, the votekicker wants to kick
+            _voters = new List<SteamID>();
+            _voters.Add(callback.ChatterID);
+
+            _voteTimer = new Timer(30000);
+            _voteTimer.AutoReset = false;
+            _voteTimer.Elapsed += (src, e) => TallyVotes(callback, true);
             _voteTimer.Start();
         }
 
@@ -117,84 +157,21 @@ namespace STEAMNERD.Modules
             if (_voters.Count == SteamNerd.ChatterNames.Count)
             {
                 _voteTimer.Stop();
-                EndVote(callback);
+                TallyVotes(callback);
             }
         }
 
-        public void VoteKick(SteamFriends.ChatMsgCallback callback, string[] args)
-        {
-            if (args.Length < 2)
-            {
-                return;
-            }
-
-            var chat = callback.ChatRoomID;
-            var kickeeName = args.Skip(1).Aggregate((current, next) => current + " " + next);
-            var name = SteamNerd.ChatterNames[callback.ChatterID];
-
-            _kickee = null;
-
-            foreach (var chatterKV in SteamNerd.ChatterNames)
-            {
-                if (chatterKV.Value.Contains(kickeeName))
-                {
-                    _kickee = chatterKV.Key;
-                    break;
-                }
-            }
-             
-            if (_kickee == null)
-            {
-                SteamNerd.SendMessage(string.Format("{0} not found!", kickeeName), chat, true);
-                return;
-            }
-
-            SteamNerd.SendMessage(string.Format("{0} wants to kick {1}! Type aye or nay to vote.", name, SteamNerd.ChatterNames[_kickee]), callback.ChatRoomID, true);
-
-            // Reset ayes and nays
-            _ayes = 1;
-            _nays = 0;
-
-            _voting = true;
-
-            // Obviously, the votekicker wants to kick
-            _voters = new List<SteamID>();
-            _voters.Add(callback.ChatterID);
-
-            _voteTimer = new Timer(30000);
-            _voteTimer.AutoReset = false;
-            _voteTimer.Elapsed += (src, e) => EndVoteKick(callback);
-            _voteTimer.Start();
-        }
-
-        public void EndVote(SteamFriends.ChatMsgCallback callback)
+        private void TallyVotes(SteamFriends.ChatMsgCallback callback, bool votekick = false)
         {
             _voting = false;
+
+            var chat = callback.ChatRoomID;
 
             var total = _ayes + _nays;
             var ayePercent = (float)_ayes / total;
             var nayPercent = (float)_nays / total;
 
-            var message = string.Format("The votes are in:\n " +
-                "Ayes: {0} ({1:P0})\n" +
-                "Nays: {2} ({3:P0})", 
-                _ayes, ayePercent, _nays, nayPercent);
-
-            SteamNerd.SendMessage(message, callback.ChatRoomID, true);
-
-            _voters = new List<SteamID>();
-        }
-
-        public void EndVoteKick(SteamFriends.ChatMsgCallback callback)
-        {
-            _voting = false;
-
-            var chat = callback.ChatRoomID;
-            var total = _ayes + _nays;
-            // -1 for TrollSlayer
-            var chatterCount = SteamNerd.ChatterNames.Count - 1;
-            var ayePercent = (float)_ayes / total;
-            var nayPercent = (float)_nays / total;
+            
 
             var message = string.Format("The votes are in:\n " +
                 "Ayes: {0} ({1:P})\n" +
@@ -202,6 +179,11 @@ namespace STEAMNERD.Modules
                 _ayes, ayePercent, _nays, nayPercent);
 
             SteamNerd.SendMessage(message, chat, true);
+
+            if (!votekick) return;
+
+            // -1 for TrollSlayer
+            var chatterCount = SteamNerd.ChatterNames.Count - 1;
 
             // 50% of chatters need to vote
             if (total < chatterCount / 2)

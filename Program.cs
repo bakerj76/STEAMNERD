@@ -11,18 +11,31 @@ namespace STEAMNERD
         {
             string user, password;
 
-            if (args.Length == 0)
+            while (true)
             {
-                FancyLogIn(out user, out password);
-            }
-            else
-            {
-                user = args[0];
-                password = args[1];
-            }
+                if (args.Length != 2)
+                {
+                    FancyLogIn(out user, out password);
 
-            var steamNerd = new SteamNerd(user, password);
+                    if (user == "")
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    user = args[0];
+                    password = args[1];
+                }
 
+                var steamNerd = new SteamNerd(user, password);
+                LoadModules(steamNerd);
+                steamNerd.Connect();
+            }
+        }
+
+        static void LoadModules(SteamNerd steamNerd)
+        {
             steamNerd.AddModule(new Money(steamNerd));
             steamNerd.AddModule(new LingT(steamNerd));
             steamNerd.AddModule(new DiceRoll(steamNerd));
@@ -37,8 +50,6 @@ namespace STEAMNERD
             steamNerd.AddModule(new AnimeRecommendationService(steamNerd));
             steamNerd.AddModule(new Blackjack(steamNerd));
             steamNerd.AddModule(new Democracy(steamNerd));
-
-            steamNerd.Connect();
         }
 
         static void FancyLogIn(out string user, out string password)

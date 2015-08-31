@@ -89,8 +89,6 @@ namespace STEAMNERD
             {
                _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1f));
             }
-
-            Console.ReadKey(true);
         }
 
         private void OnConnect(SteamClient.ConnectedCallback callback)
@@ -112,16 +110,27 @@ namespace STEAMNERD
                 sentryHash = CryptoHelper.SHAHash(sentryFile);
             }
 
-            SteamUser.LogOn(new SteamUser.LogOnDetails
-                             {
-                                 Username = _user,
-                                 Password = _password,
+            try
+            {
+                SteamUser.LogOn(new SteamUser.LogOnDetails
+                {
+                    Username = _user,
+                    Password = _password,
 
-                                 AuthCode = _authCode,
-                                 TwoFactorCode = _twoFactorAuth,
-                                 SentryFileHash = sentryHash,
-                             }
-            );
+                    AuthCode = _authCode,
+                    TwoFactorCode = _twoFactorAuth,
+                    SentryFileHash = sentryHash,
+                }
+);
+            } 
+            catch (ArgumentException e)
+            {
+                Console.WriteLine("{0}", e.Message);
+
+                IsRunning = false;
+                return;
+            }
+
         }
 
         private void OnDisconnect(SteamClient.DisconnectedCallback callback)
