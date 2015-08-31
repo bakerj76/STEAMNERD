@@ -59,7 +59,7 @@ namespace STEAMNERD.Modules
         /// <param name="chatRoom"></param>
         public void ModuleHelp(Module module, SteamID chatRoom)
         {
-            var message = string.Format("{0}\n{1}\n\n", Name, Description);
+            var message = string.Format("{0}\n{1}\n\n", module.Name, module.Description);
 
             foreach (var command in module.Commands)
             {
