@@ -120,6 +120,7 @@
     <Compile Include="Module.cs" />
     <Compile Include="Modules\AnimeRecommendationService.cs" />
     <Compile Include="Modules\Blackjack.cs" />
+    <Compile Include="Modules\Deck.cs" />
     <Compile Include="Modules\Democracy.cs" />
     <Compile Include="Modules\Help.cs" />
     <Compile Include="Modules\Joke.cs" />

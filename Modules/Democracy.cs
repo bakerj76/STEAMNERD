@@ -17,6 +17,10 @@ namespace STEAMNERD.Modules
 
         private SteamID _kickee;
 
+        /// <summary>
+        /// A module for voting on stuff and things.
+        /// </summary>
+        /// <param name="steamNerd"></param>
         public Democracy(SteamNerd steamNerd) : base(steamNerd)
         {
             Name = "Democracy";
@@ -54,10 +58,9 @@ namespace STEAMNERD.Modules
 
             _voters = new List<SteamID>();
         }
-        
 
         /// <summary>
-        /// Starts a vote
+        /// Starts a vote on a question or whatever.
         /// </summary>
         /// <param name="callback"></param>
         /// <param name="args"></param>
@@ -83,6 +86,11 @@ namespace STEAMNERD.Modules
             _voteTimer.Start();
         }
 
+        /// <summary>
+        /// Votes to kick someone.
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <param name="args"></param>
         public void VoteKick(SteamFriends.ChatMsgCallback callback, string[] args)
         {
             if (_voting || args.Length < 2) return;
@@ -127,7 +135,7 @@ namespace STEAMNERD.Modules
         }
 
         /// <summary>
-        /// Checks if it's a vote and does stuff
+        /// Checks if what a person typed was a vote and counts them.
         /// </summary>
         /// <param name="callback"></param>
         /// <param name="args"></param>
@@ -166,6 +174,11 @@ namespace STEAMNERD.Modules
             }
         }
 
+        /// <summary>
+        /// Count up the votes (not really, they're already counted) and see who won.
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <param name="votekick">Is this a vote to kick someone?</param>
         private void TallyVotes(SteamFriends.ChatMsgCallback callback, bool votekick = false)
         {
             _voting = false;
@@ -175,13 +188,16 @@ namespace STEAMNERD.Modules
             var total = _ayes + _nays;
             var ayePercent = (float)_ayes / total;
             var nayPercent = (float)_nays / total;
-
+            var turnout = (float)total / SteamNerd.ChatterNames.Count;
             
 
             var message = string.Format("The votes are in:\n" +
-                "Ayes: {0} ({1:P2})\n" +
-                "Nays: {2} ({3:P2})",
-                _ayes, ayePercent, _nays, nayPercent);
+                "Voter Turnout: {0} / {1} ({2:P0})\n" +
+                "Ayes: {3} ({4:P0})\n" +
+                "Nays: {5} ({6:P0})",
+                total, SteamNerd.ChatterNames.Count, turnout,
+                _ayes, ayePercent, 
+                _nays, nayPercent);
 
             SteamNerd.SendMessage(message, chat, true);
 

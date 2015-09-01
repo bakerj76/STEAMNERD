@@ -7,14 +7,30 @@ using SteamKit2;
 
 namespace STEAMNERD.Modules
 {
+    static class BlackjackCardExtensions
+    {
+        public static int GetValue(this Deck.Card card)
+        {
+            switch (card.Rank)
+            {
+                case Deck.Rank.Ace:
+                    return 11;
+                case Deck.Rank.Jack:
+                case Deck.Rank.Queen:
+                case Deck.Rank.King:
+                    return 10;
+                default:
+                    return (int)card.Rank;
+            }
+        }
+    }
+
     class Blackjack : Module
     {
         private float PREROUND_TIMER = 30 * 1000;
         private const string SUIT_CHARS = "♣♦♥♠";
 
         public enum State { NoGame, WaitingForPlayers, Betting, Starting, PlayerTurn, DealerTurn }
-        public enum Suit { Clubs, Diamonds, Hearts, Spades }
-        public enum Rank { Ace = 1, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King }
         public enum HandState { None, Stand, DoubleDown, Surrender, Blackjack, Bust, AceSplit, Charlie }
 
         private Money _moneyModule;
@@ -29,11 +45,10 @@ namespace STEAMNERD.Modules
         private Dictionary<SteamID, Player> _players;
         private Hand _dealerHand;
 
-        private System.Timers.Timer _joinTimer;
         private System.Timers.Timer _preRoundTimer;
         private System.Timers.Timer[] _countdown;
 
-        private List<Card> _deck;
+        private Deck _deck;
         private int _deckPos;
 
         public class Player
@@ -52,12 +67,12 @@ namespace STEAMNERD.Modules
 
         public class Hand
         {
-            public List<Card> Cards;
+            public List<Deck.Card> Cards;
             public HandState State;
 
             public Hand()
             {
-                Cards = new List<Card>();
+                Cards = new List<Deck.Card>();
                 State = HandState.None;
             }
 
@@ -67,7 +82,7 @@ namespace STEAMNERD.Modules
 
                 foreach (var card in Cards)
                 {
-                    if (total > 21 && card.Rank == Rank.Ace)
+                    if (total > 21 && card.Rank == Deck.Rank.Ace)
                     {
                         total -= 10;
                     }
@@ -91,53 +106,6 @@ namespace STEAMNERD.Modules
                 }
 
                 return handString.Trim();
-            }
-        }
-
-        public struct Card
-        {
-            public Suit Suit;
-            public Rank Rank;
-
-            public int GetValue()
-            {
-                switch (Rank)
-                {
-                    case Rank.Ace:
-                        return 11;
-                    case Rank.Jack:
-                    case Rank.Queen:
-                    case Rank.King:
-                        return 10;
-                    default:
-                        return (int)Rank;
-                }
-            }
-
-            public override string ToString()
-            {
-                var rankString = "";
-
-                switch (Rank)
-                {
-                    case Rank.Ace:
-                        rankString += "A";
-                        break;
-                    case Rank.Jack:
-                        rankString += "J";
-                        break;
-                    case Rank.Queen:
-                        rankString += "Q";
-                        break;
-                    case Rank.King:
-                        rankString += "K";
-                        break;
-                    default:
-                        rankString += (int)Rank;
-                        break;
-                }
-
-                return rankString + SUIT_CHARS[(int)Suit];
             }
         }
 
@@ -225,19 +193,7 @@ namespace STEAMNERD.Modules
             _players = new Dictionary<SteamID, Player>();
             _countdown = new System.Timers.Timer[3];
 
-            BuildDeck();
-        }
-
-        public void AddPlayer(SteamID steamID, SteamID chat, bool announce = true)
-        {
-            var name = SteamNerd.ChatterNames[steamID];
-            var player = new Player();
-            _players[steamID] = player;
-
-            if (announce)
-            {
-                SteamNerd.SendMessage(string.Format("{0} is joining blackjack!", name), chat, true);
-            }
+            _deck = new Deck();
         }
 
         public void StartGame(SteamFriends.ChatMsgCallback callback)
@@ -333,7 +289,7 @@ namespace STEAMNERD.Modules
         {
             var chat = callback.ChatRoomID;
 
-            Shuffle();
+            _deck.Shuffle();
 
             // Deal to players
             foreach (var playerKV in _players)
@@ -353,13 +309,9 @@ namespace STEAMNERD.Modules
                 if (hand.GetValue() == 21)
                 {
                     hand.State = HandState.Blackjack;
-                    PrintPlayersHands(playerID, chat);
-                    CheckHands(callback);
                 }
-                else
-                {
-                    PrintPlayersHands(playerID, chat);
-                }
+
+                PrintPlayersHands(playerID, chat);
             }
 
             // Deal to dealer
@@ -368,7 +320,7 @@ namespace STEAMNERD.Modules
             Deal(_dealerHand);
             SteamNerd.SendMessage(string.Format("Dealer\n{0}🂠", _dealerHand.Cards[0]), chat, true);
 
-            _canInsure = _dealerHand.Cards[0].Rank == Rank.Ace;
+            _canInsure = _dealerHand.Cards[0].Rank == Deck.Rank.Ace;
 
             if (_canInsure)
             {
@@ -377,6 +329,9 @@ namespace STEAMNERD.Modules
             }
 
             _gameState = State.PlayerTurn;
+
+            // What if everyone playing got a blackjack?!?!
+            CheckHands(callback);
         }
 
         public void CheckHands(SteamFriends.ChatMsgCallback callback)
@@ -405,11 +360,12 @@ namespace STEAMNERD.Modules
 
             var chat = callback.ChatRoomID;
             var blackjack = _dealerHand.GetValue() == 21;
-            var hasAce = _dealerHand.Cards.Any(card => card.Rank == Rank.Ace);
+            var hasAce = _dealerHand.Cards.Any(card => card.Rank == Deck.Rank.Ace);
+            int value = _dealerHand.GetValue();
 
-            while (true)
+            while (value < 18)
             {
-                var value = _dealerHand.GetValue();
+                value = _dealerHand.GetValue();
 
                 PrintDealer(chat);
 
@@ -435,6 +391,7 @@ namespace STEAMNERD.Modules
                 {
                     if (hasAce && value == _dealerHand.GetMax())
                     {
+                        // Hit on soft-17s
                         DealerHit(chat);
                     }
                     else
@@ -873,7 +830,7 @@ namespace STEAMNERD.Modules
             hand1.Cards.RemoveAt(1);
 
             // Check if aces
-            var aceSplit = hand1.Cards[0].Rank == Rank.Ace;
+            var aceSplit = hand1.Cards[0].Rank == Deck.Rank.Ace;
 
             // Deal to both hands
             Deal(hand1);
@@ -957,6 +914,18 @@ namespace STEAMNERD.Modules
             }
 
             SteamNerd.SendMessage(message, chat, true);
+        }
+
+        public void AddPlayer(SteamID steamID, SteamID chat, bool announce = true)
+        {
+            var name = SteamNerd.ChatterNames[steamID];
+            var player = new Player();
+            _players[steamID] = player;
+
+            if (announce)
+            {
+                SteamNerd.SendMessage(string.Format("{0} is joining blackjack!", name), chat, true);
+            }
         }
 
         private void CheckEndGame(SteamFriends.ChatMsgCallback callback)
@@ -1052,7 +1021,7 @@ namespace STEAMNERD.Modules
             SteamNerd.SendMessage("Dealer hits!", chat, true);
             Deal(_dealerHand);
 
-            if (_dealerHand.Cards.Last().Rank == Rank.Ace)
+            if (_dealerHand.Cards.Last().Rank == Deck.Rank.Ace)
             {
                 return true;
             }
@@ -1070,51 +1039,12 @@ namespace STEAMNERD.Modules
         }
 
         /// <summary>
-        /// Fisher-Yates shuffle the stuff
-        /// </summary>
-        private void Shuffle()
-        {
-            _deckPos = 0;
-
-            for (var i = _deck.Count - 1; i > 0; i--)
-            {
-                var j = _rand.Next(i + 1);
-                var temp = _deck[j];
-                _deck[j] = _deck[i];
-                _deck[i] = temp;
-            }
-        }
-
-        /// <summary>
         /// Draws a card and adds it to the hand
         /// </summary>
         /// <param name="hand">Hand to add the card to</param>
         private void Deal(Hand hand)
         {
-            hand.Cards.Add(_deck[_deckPos++]);
-        }
-
-        /// <summary>
-        /// Fills the deck with cards
-        /// </summary>
-        private void BuildDeck()
-        {
-            _deck = new List<Card>();
-
-            // Build deck
-            foreach (var suit in Enum.GetValues(typeof(Suit)))
-            {
-                foreach (var rank in Enum.GetValues(typeof(Rank)))
-                {
-                    var card = new Card
-                    {
-                        Suit = (Suit)suit,
-                        Rank = (Rank)rank
-                    };
-
-                    _deck.Add(card);
-                }
-            }
+            hand.Cards.Add(_deck.DealCard());
         }
     }
 }
