@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Text;
+using System.Linq;
 using SteamKit2;
 
 namespace STEAMNERD.Modules
@@ -59,19 +60,26 @@ namespace STEAMNERD.Modules
         /// <param name="chatRoom"></param>
         public void ModuleHelp(Module module, SteamID chatRoom)
         {
-            var message = string.Format("{0}\n{1}\n\n", module.Name, module.Description);
+            var message = new StringBuilder(string.Format("{0}\n{1}\n\n", module.Name, module.Description));
 
             foreach (var command in module.Commands)
             {
-                if (command.Match == "" || command.Description == "")
+                if (command.Match[0] == "" || command.Description == "")
                 {
                     continue;
                 }
 
-                message += string.Format("{0}{1,-50}{2}\n", SteamNerd.CommandChar, command.Match, command.Description);
+                var match = new StringBuilder();
+                
+                foreach (var arg in command.Match)
+                {
+                    match.Append(arg + " ");
+                }
+
+                message.Append(string.Format("{0}{1,-50}{2}\n", SteamNerd.CommandChar, match, command.Description));
             }
 
-            SteamNerd.SendMessage(message, chatRoom, true);
+            SteamNerd.SendMessage(message.ToString(), chatRoom, true);
         }
     }
 }
