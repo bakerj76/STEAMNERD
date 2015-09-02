@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Timers;
 using SteamKit2;
 
@@ -43,7 +44,7 @@ namespace STEAMNERD.Modules
                 3
             );
 
-            _animes = new List<string> { "Death Note" };
+            _animes = new List<string> { };
             _rand = new Random();
 
             _changed = false;
@@ -66,7 +67,8 @@ namespace STEAMNERD.Modules
 
         public void AddAnime(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            _animes.Add(args[2]);
+            var anime = args.Skip(2).Aggregate((current, next) => current + " " + next);
+            _animes.Add(anime);
             _changed = true;
         }
 

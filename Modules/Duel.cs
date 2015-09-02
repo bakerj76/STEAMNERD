@@ -29,7 +29,7 @@ namespace STEAMNERD.Modules
             AddCommand(
                 "",
                 "",
-                null
+                CheckDuel
             );
 
             _players = new List<SteamID>();
@@ -57,7 +57,8 @@ namespace STEAMNERD.Modules
                 _inProgress = true;
                 SteamNerd.SendMessage(string.Format("{0} is dueling {1}! D-d-d-d-d-duel.", challengerName, name), chat);
 
-                var countdown = new Countdown(SteamNerd, chat, (src, e) => StartDuel(callback), 3f, 3);
+
+                var countdown = new Countdown(SteamNerd, chat, (src, e) => StartDuel(callback), 4f, 3);
 
                 var webRequest = WebRequest.Create("http://randomword.setgetgo.com/get.php");
                 var webResponse = webRequest.GetResponse();
@@ -65,7 +66,7 @@ namespace STEAMNERD.Modules
 
                 using (var stream = new StreamReader(webResponse.GetResponseStream()))
                 {
-                    _word = stream.ReadToEnd().ToLower();
+                    _word = stream.ReadToEnd().ToLower().Trim();
                 }
             }
         }
@@ -77,7 +78,7 @@ namespace STEAMNERD.Modules
 
         public void CheckDuel(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            if (!_inProgress || args[0].ToLower() != _word) return;
+            if (!_inProgress || args[0].ToLower() != _word || _word == "") return;
 
             var chat = callback.ChatRoomID;
             var name = SteamNerd.ChatterNames[callback.ChatterID];
@@ -85,10 +86,14 @@ namespace STEAMNERD.Modules
 
             SteamID kickee = _players.Where(player => player != callback.ChatterID).First();
 
-            var timer = new Timer(1f);
-            timer.AutoReset = false;
-            timer.Elapsed += (src, e) => SteamNerd.SteamFriends.KickChatMember(chat, kickee);
-            timer.Start();
+            var delay = new Timer(1000f);
+            delay.AutoReset = false;
+            delay.Elapsed += (src, e) => SteamNerd.SteamFriends.KickChatMember(chat, kickee);
+            delay.Start();
+
+            _inProgress = false;
+            _players = new List<SteamID>();
+            _word = "";
         }
     }
 }

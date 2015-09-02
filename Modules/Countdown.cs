@@ -14,24 +14,28 @@ namespace STEAMNERD.Modules
         /// <param name="callback"></param>
         /// <param name="time"></param>
         /// <param name="countdownStart"></param>
-        public Countdown(SteamNerd steamNerd, SteamID chat, ElapsedEventHandler callback, float time, int countdownStart)
+        public Countdown(SteamNerd steamNerd, SteamID chat, ElapsedEventHandler callback, float seconds, int countdownStart)
         {
-            MainTimer = new Timer(time);
+            _countdownTimers = new Timer[countdownStart];
+
+            MainTimer = new Timer(seconds * 1000);
             MainTimer.AutoReset = false;
             MainTimer.Elapsed += callback;
             MainTimer.Start();
 
             for (var i = 1; i <= countdownStart; i++)
             {
-                if (time - i <= 0) return;
+                if (seconds - i <= 0) return;
 
-                var timer = new Timer(time - i);
+                var timer = new Timer(seconds - i);
                 var countdownString = string.Format("{0}...", i);
 
-                timer = new Timer(30000 - i * 1000);
+                timer = new Timer((seconds - i) * 1000);
                 timer.AutoReset = false;
                 timer.Elapsed += (src, e) => steamNerd.SendMessage(countdownString, chat);
                 timer.Start();
+
+                _countdownTimers[i - 1] = timer;
             }
         }
 
