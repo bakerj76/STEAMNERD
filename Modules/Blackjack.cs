@@ -7,6 +7,18 @@ using SteamKit2;
 
 namespace STEAMNERD.Modules
 {
+    /// Blackjack
+    /// ---------
+    /// Flow
+    /// 1. Place your bets
+    /// 2. Start round
+    /// 3. Deal cards to players
+    /// 4. Deal cards to dealer
+    /// 5. If everyone playing has blackjack, do 7
+    /// 6. Player turns
+    /// 7. Dealer turn
+    /// 8. Go back to 1
+
     static class BlackjackCardExtensions
     {
         public static int GetValue(this Deck.Card card)

@@ -367,9 +367,9 @@ namespace STEAMNERD
         /// <param name="message">The chat message</param>
         /// <param name="steamID">The person or the chat room to send to</param>
         /// <param name="isChat">Is this a chat room or a person?</param>
-        public void SendMessage(string message, SteamID steamID, bool isChat)
+        public void SendMessage(string message, SteamID steamID, bool isChat = true)
         {
-            if (isChat)
+            if (steamID.IsChatAccount)
             {
                 SteamFriends.SendChatRoomMessage(steamID, EChatEntryType.ChatMsg, message);
             }

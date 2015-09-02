@@ -50,6 +50,7 @@ namespace STEAMNERD
             steamNerd.AddModule(new AnimeRecommendationService(steamNerd));
             steamNerd.AddModule(new Blackjack(steamNerd));
             steamNerd.AddModule(new Democracy(steamNerd));
+            steamNerd.AddModule(new Duel(steamNerd));
         }
 
         static void FancyLogIn(out string user, out string password)

@@ -13,7 +13,7 @@ namespace STEAMNERD
         public string Name;
 
         /// <summary>
-        /// What does the module do?
+        /// What the module does.
         /// </summary>
         public string Description;
 
@@ -23,7 +23,7 @@ namespace STEAMNERD
         public List<Command> Commands;
 
         /// <summary>
-        /// A callback delegate for commands
+        /// A callback delegate for commands.
         /// </summary>
         /// <param name="callback"></param>
         /// <param name="args"></param>
@@ -31,8 +31,8 @@ namespace STEAMNERD
 
         /// <summary>
         /// An array of matching strings, a description describing what the 
-        /// command does, a callback to the action, and the minimum number
-        /// of arguments to match this command.
+        /// command does, the action, and the minimum number of arguments
+        /// required to match this command.
         /// </summary>
         public struct Command
         {
