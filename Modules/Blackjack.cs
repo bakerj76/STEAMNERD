@@ -1,24 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Timers;
 using System.Threading;
 using SteamKit2;
 
 namespace STEAMNERD.Modules
 {
-    /// Blackjack
-    /// ---------
-    /// Flow
-    /// 1. Place your bets
-    /// 2. Start round
-    /// 3. Deal cards to players
-    /// 4. Deal cards to dealer
-    /// 5. If everyone playing has blackjack, do 7
-    /// 6. Player turns
-    /// 7. Dealer turn
-    /// 8. Go back to 1
-
     static class BlackjackCardExtensions
     {
         public static int GetValue(this Deck.Card card)
@@ -39,29 +28,24 @@ namespace STEAMNERD.Modules
 
     class Blackjack : Module
     {
-        private float PREROUND_TIMER = 30 * 1000;
-        private const string SUIT_CHARS = "♣♦♥♠";
-
-        public enum State { NoGame, WaitingForPlayers, Betting, Starting, PlayerTurn, DealerTurn }
+        private float PREROUND_TIMER = 30;
+        public enum State { NoGame, Betting, Dealing, PlayerTurn, DealerTurn, Payout }
         public enum HandState { None, Stand, DoubleDown, Surrender, Blackjack, Bust, AceSplit, Charlie }
 
         private Money _moneyModule;
         private Random _rand;
 
-        private bool _canInsure;
-        private State _gameState;
-
-        private int _betsPlaced;
-
         private List<SteamID> _waiting;
         private Dictionary<SteamID, Player> _players;
         private Hand _dealerHand;
 
-        private System.Timers.Timer _preRoundTimer;
-        private System.Timers.Timer[] _countdown;
+        private bool _canInsure;
+        private State _gameState;
+        private int _betsPlaced;
 
+        private Countdown _preRoundTimer;
         private Deck _deck;
-        private int _deckPos;
+        private SteamID _chat;
 
         public class Player
         {
@@ -200,41 +184,46 @@ namespace STEAMNERD.Modules
 
             _moneyModule = (Money)SteamNerd.GetModule("Money");
             _rand = new Random();
-
             _waiting = new List<SteamID>();
             _players = new Dictionary<SteamID, Player>();
-            _countdown = new System.Timers.Timer[3];
-
             _deck = new Deck();
         }
 
-        public void StartGame(SteamFriends.ChatMsgCallback callback)
+        /// <summary>
+        /// Changes the game state and calls the appropriate function.
+        /// </summary>
+        /// <param name="state"></param>
+        public void ChangeState(State state)
         {
-            _gameState = State.WaitingForPlayers;
+            _gameState = state;
 
-            var chat = callback.ChatRoomID;
-            SteamNerd.SendMessage("Starting blackjack!", chat, true);
-
-            StartBetting(callback);
+            switch (_gameState)
+            {
+                case State.NoGame:
+                    break;
+                case State.Betting:
+                    PlaceBets();
+                    break;
+                case State.Dealing:
+                    Deal();
+                    break;
+                case State.PlayerTurn:
+                    break;
+                case State.DealerTurn:
+                    PlayDealer();
+                    break;
+                case State.Payout:
+                    Payout();
+                    break;
+            }
         }
 
-        public void StartBetting(SteamFriends.ChatMsgCallback callback)
+        /// <summary>
+        /// When players can place bets.
+        /// </summary>
+        public void PlaceBets()
         {
-            _gameState = State.Betting;
-
-            var chat = callback.ChatRoomID;
-
-            // Move all waiting players into the playing queue
-            if (_waiting.Count != 0)
-            {
-                foreach (var player in _waiting)
-                {
-                    var name = SteamNerd.ChatterNames[player];
-                    AddPlayer(player, chat);
-                }
-
-                _waiting = new List<SteamID>();
-            }
+            MoveWaitingToPlaying();
 
             var message = string.Format("Betting has started now!\n" +
                 "You have 30 seconds to place your bets.\n" +
@@ -243,210 +232,191 @@ namespace STEAMNERD.Modules
                 "If you don't, you're gonna get kicked out of the game!\n",
                 SteamNerd.CommandChar);
 
-            SteamNerd.SendMessage(message, chat, true);
+            SteamNerd.SendMessage(message, _chat, true);
 
-            _preRoundTimer = new System.Timers.Timer(PREROUND_TIMER);
-            _preRoundTimer.AutoReset = false;
-            _preRoundTimer.Elapsed += (src, e) => StartBlackjack(callback);
-            _preRoundTimer.Start();
+            // Wait for bets.
+            _preRoundTimer = new Countdown(SteamNerd, _chat, (src, e) => StartBlackjack(), PREROUND_TIMER, 3);
+        }
 
-            for (int i = 1; i <= 3; i++)
+        /// <summary>
+        /// Move all waiting players into playing.
+        /// </summary>
+        private void MoveWaitingToPlaying()
+        {
+            if (_waiting.Count != 0)
             {
-                var countdownString = string.Format("{0}...", i);
+                foreach (var player in _waiting)
+                {
+                    var name = SteamNerd.ChatterNames[player];
+                    AddPlayer(player);
+                }
 
-                var timer = new System.Timers.Timer(PREROUND_TIMER - i * 1000);
-                timer.AutoReset = false;
-                timer.Elapsed += (src, e) => SteamNerd.SendMessage(countdownString, chat, true); ;
-                timer.Start();
-
-                _countdown[i - 1] = timer; 
+                _waiting = new List<SteamID>();
             }
         }
 
-        public void StartBlackjack(SteamFriends.ChatMsgCallback callback)
+        /// <summary>
+        /// Sets up the game.
+        /// </summary>
+        public void StartBlackjack()
         {
-            if (_gameState == State.NoGame)
-            {
-                return;
-            }
-
-            _gameState = State.Starting;
-
-            // Reset bet counter
+            // Reset the bet counter.
             _betsPlaced = 0;
 
-            var chat = callback.ChatRoomID;
-
-            foreach(var playerKV in _players.Where(kvp => kvp.Value.Bet == 0).ToList())
+            // Remove players who didn't bet.
+            foreach (var playerKV in _players.Where(kvp => kvp.Value.Bet == 0).ToList())
             {
                 _players.Remove(playerKV.Key);
             }
 
-            CheckEndGame(callback);
-
-            var message = "Current Players:\n";
-
-            for (var i = 0; i < _players.Count; i++)
+            // Check if no one's playing the game.
+            if (_players.Count == 0)
             {
-                var player = _players.Keys.ElementAt(i);
-                var name = SteamNerd.ChatterNames[player];
-                message += string.Format("{0}. {1}\n", i + 1, name);
+                EndGame();
+                return;
             }
 
-            SteamNerd.SendMessage(message, chat, true);
-            StartRound(callback);
+            ChangeState(State.Dealing);
         }
 
-        public void StartRound(SteamFriends.ChatMsgCallback callback)
+        /// <summary>
+        /// Deals cards to the players, then the dealer.
+        /// </summary>
+        public void Deal()
         {
-            var chat = callback.ChatRoomID;
-
             _deck.Shuffle();
 
-            // Deal to players
+            // Deal to all of the players.
             foreach (var playerKV in _players)
             {
                 var playerID = playerKV.Key;
                 var player = playerKV.Value;
-                var name = SteamNerd.ChatterNames[playerID];
-
+                
+                // Deal two cards. 
                 var hand = new Hand();
-                Deal(hand);
-                Deal(hand);
-
-
+                Deal(hand, 2);
                 player.Hands.Add(hand);
 
-                // You win! And can't do anything!
+                // Blackjack! You win! And can't do anything!
                 if (hand.GetValue() == 21)
                 {
                     hand.State = HandState.Blackjack;
                 }
 
-                PrintPlayersHands(playerID, chat);
+                // Show the player their hand.
+                PrintPlayersHands(playerID);
             }
 
-            // Deal to dealer
+            // Deal to dealer, and hide the hole card.
             _dealerHand = new Hand();
-            Deal(_dealerHand);
-            Deal(_dealerHand);
-            SteamNerd.SendMessage(string.Format("Dealer\n{0}🂠", _dealerHand.Cards[0]), chat, true);
+            Deal(_dealerHand, 2);
+            PrintDealer(true);
 
-            _canInsure = _dealerHand.Cards[0].Rank == Deck.Rank.Ace;
-
-            if (_canInsure)
-            {
-                SteamNerd.SendMessage(string.Format("Dealer has an ace. Insurance can be bought with {0}insurance", SteamNerd.CommandChar),
-                    chat, true);
-            }
-
-            _gameState = State.PlayerTurn;
+            CheckInsurance();
+            ChangeState(State.PlayerTurn);
 
             // What if everyone playing got a blackjack?!?!
-            CheckHands(callback);
+            CheckHands();
         }
 
-        public void CheckHands(SteamFriends.ChatMsgCallback callback)
+        /// <summary>
+        /// Check if players can buy insurance.
+        /// </summary>
+        private void CheckInsurance()
         {
-            foreach (var playerKV in _players)
-            {
-                var player = playerKV.Value;
+            // If the face-up dealer card is an ace, then players can buy insurance.
+            _canInsure = _dealerHand.Cards[0].Rank == Deck.Rank.Ace;
 
-                foreach (var hand in player.Hands)
-                {
-                    // Someone hasn't bet!!!
-                    if (hand.State == HandState.None)
-                    {
-                        return;
-                    }
-                }
-            }
+            if (!_canInsure) return;
 
-            // End Round
-            DealerTurn(callback);
+            SteamNerd.SendMessage(string.Format("Dealer has an ace. " +
+                    "Insurance can be bought with {0}insurance",
+                    SteamNerd.CommandChar),
+                _chat);
         }
 
-        public void DealerTurn(SteamFriends.ChatMsgCallback callback)
+        /// <summary>
+        /// Plays out the dealer's turn.
+        /// </summary>
+        public void PlayDealer()
         {
-            _gameState = State.DealerTurn;
-
-            var chat = callback.ChatRoomID;
             var blackjack = _dealerHand.GetValue() == 21;
             var hasAce = _dealerHand.Cards.Any(card => card.Rank == Deck.Rank.Ace);
             int value = _dealerHand.GetValue();
-
-            while (value < 18)
+            
+            // Keep playing until the dealers hand is a hard-17 or above 17.
+            while (true)
             {
                 value = _dealerHand.GetValue();
 
-                PrintDealer(chat);
-
+                // Show the dealer's hand then pause for readability.
+                PrintDealer();
                 Thread.Sleep(3000);
 
                 if (blackjack)
                 {
-                    SteamNerd.SendMessage("Dealer has blackjack!", chat, true);
+                    SteamNerd.SendMessage("Dealer has blackjack!", _chat);
 
                     if (_canInsure)
                     {
-                        PayInsurance(callback);
+                        PayInsurance();
                     }
-
-                    break;
                 }
-
-                if (value < 17)
+                // Hit if the dealer's hand is less than 17.
+                else if (value < 17)
                 {
-                    hasAce |= DealerHit(chat);
+                    hasAce |= DealerHit();
+                    continue;
                 }
                 else if (value == 17)
                 {
+                    // If the dealer has a 17, check if it's a soft-17.
+                    // If the dealer has an ace and the value of their hand
+                    // is equal to the maximum (all ace's are 11) value of 
+                    // their hand, then it's a soft-17.
                     if (hasAce && value == _dealerHand.GetMax())
                     {
-                        // Hit on soft-17s
-                        DealerHit(chat);
-                    }
-                    else
-                    {
-                        break;
+                        DealerHit();
+                        continue;
                     }
                 }
-                else
-                {
-                    break;
-                }
+
+                break;
             }
 
-            Payout(callback);
+            ChangeState(State.Payout);
         }
 
-        public void Payout(SteamFriends.ChatMsgCallback callback)
+        /// <summary>
+        /// Pay the players if they won.
+        /// </summary>
+        /// <param name="callback"></param>
+        public void Payout()
         {
-            var chat = callback.ChatRoomID;
-            var dealerBusts = _dealerHand.GetValue() > 21;
-
-            if (dealerBusts)
+            var dealerBusted = _dealerHand.GetValue() > 21;
+            if (dealerBusted)
             {
-                SteamNerd.SendMessage("Dealer busts!", chat, true);
+                SteamNerd.SendMessage("Dealer busts!", _chat);
             }
 
             foreach (var playerKV in _players)
             {
                 var playerID = playerKV.Key;
-                var name = SteamNerd.ChatterNames[playerID];
                 var player = playerKV.Value;
+                var name = SteamNerd.ChatterNames[playerID];
 
-                var message = string.Format("{0} [Bet: {1}]\n", name, player.Bet);
-                var format = player.Hands.Count > 1 ? "Hand {0}: {1} {2}\n" : "{1} {2}";
-
+                // The dealer got a natural 21 (ace + 10 card)
                 var dealerNatural = _dealerHand.Cards.Count == 2 && _dealerHand.GetValue() == 21;
                 var dealerValue = _dealerHand.GetValue();
+
+                var message = new StringBuilder(string.Format("{0} [Bet: {1}]\n", name, player.Bet));
+                var format = player.Hands.Count > 1 ? "Hand {0}: {1} {2}\n" : "{1} {2}";
 
                 var total = 0;
 
                 for (var i = 0; i < player.Hands.Count; i++)
                 {
-                    var j = i + 1;
+                    var printIndex = i + 1;
                     var hand = player.Hands[i];
                     var winnings = player.Bet;
 
@@ -455,115 +425,165 @@ namespace STEAMNERD.Modules
                     switch (hand.State)
                     {
                         case HandState.Blackjack:
+                            // Ties only on dealer natural 21s.
                             if (dealerNatural)
                             {
-                                message += string.Format(format, j, hand, "Push");
+                                message.Append(string.Format(format, printIndex, hand, "Push"));
                             }
                             else
                             {
+                                // Blackjacks win 3:2 
                                 winnings += (int)(winnings * (3.0 / 2.0));
-                                message += string.Format(format, j, hand, "Blackjack");
+                                message.Append(string.Format(format, printIndex, hand, "Blackjack"));
                             }
                             break;
 
                         case HandState.Surrender:
-                            winnings = winnings / 2;
-                            message += string.Format(format, j, hand, hand.State);
+                            // Give the player back half their money
+                            winnings /= 2;
+                            message.Append(string.Format(format, printIndex, hand, hand.State));
                             break;
 
                         case HandState.Bust:
                             winnings = 0;
-                            message += string.Format(format, j, hand, hand.State);
+                            message.Append(string.Format(format, printIndex, hand, hand.State));
                             break;
 
                         case HandState.DoubleDown:
                             if (handValue > dealerValue)
                             {
                                 winnings *= 4;
-                                message += string.Format(format, j, hand, "Double Down Win");
+                                message.Append(string.Format(format, printIndex, hand, "Double Down Win"));
                             }
                             else if (handValue == dealerValue && !dealerNatural)
                             {
                                 winnings *= 2;
-                                message += string.Format(format, j, hand, "Double Down Push");
+                                message.Append(string.Format(format, printIndex, hand, "Double Down Push"));
                             }
                             else
                             {
                                 winnings = 0;
-                                message += string.Format(format, j, hand, "Double Down Loss");
+                                message.Append(string.Format(format, printIndex, hand, "Double Down Loss"));
                             }
                             break;
 
                         case HandState.Charlie:
+                            // Natural 21's beat 8-card charlies.
                             if (!dealerNatural)
                             {
                                 winnings *= 2;
-                                message += string.Format(format, j, hand, "8 Card Charlie");
+                                message.Append(string.Format(format, printIndex, hand, "8 Card Charlie"));
                             }
                             else
                             {
                                 winnings = 0;
-                                message += string.Format(format, j, hand, "8 Card Charlie Loss");
+                                message.Append(string.Format(format, printIndex, hand, "8 Card Charlie Loss"));
                             }
                             break;
                         
                         default:
-                            if (dealerBusts || handValue > dealerValue)
+                            if (dealerBusted || handValue > dealerValue)
                             {
                                 winnings *= 2;
-                                message += string.Format(format, j, hand, "Win");
+                                message.Append(string.Format(format, printIndex, hand, "Win"));
                             }
+                            // Natural 21s beat unnatural 21s.
                             else if (handValue == dealerValue && !dealerNatural)
                             {
                                 winnings *= 1;
-                                message += string.Format(format, j, hand, "Push");
+                                message.Append(string.Format(format, printIndex, hand, "Push"));
                             }
                             else
                             {
                                 winnings = 0;
-                                message += string.Format(format, j, hand, "Loss");
+                                message.Append(string.Format(format, printIndex, hand, "Loss"));
                             }
                             break;
                     }
 
                     total += winnings;
-                    _moneyModule.AddMoney(playerID, chat, winnings);
+                    _moneyModule.AddMoney(playerID, _chat, winnings);
                 }
 
-                var net = total - player.Bet;
-                SteamNerd.SendMessage(message, chat, true);
-
-                if (net > 0)
-                {
-                    SteamNerd.SendMessage(string.Format("{0} wins ${1}!", name, net), chat, true);
-                }
-                else if (net < 0)
-                {
-                    SteamNerd.SendMessage(string.Format("{0} loses -${1}!", name, -net), chat, true);
-                }
+                SteamNerd.SendMessage(message.ToString(), _chat);
+                PrintNet(player, total, name);
             }
 
-            RestartRound(callback);
+            RestartRound();
         }
 
-        public void RestartRound(SteamFriends.ChatMsgCallback callback)
+        /// <summary>
+        /// Print the player's net winnings.
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="totalWinnings"></param>
+        /// <param name="playerName"></param>
+        private void PrintNet(Player player, int totalWinnings, string playerName)
         {
-            var steamIDs = new List<SteamID>();
-            foreach (var player in _players)
-            {
-                steamIDs.Add(player.Key);
-            }
+            var net = totalWinnings - player.Bet;
 
+            if (net > 0)
+            {
+                SteamNerd.SendMessage(string.Format("{0} wins ${1}!", playerName, net), _chat);
+            }
+            else if (net < 0)
+            {
+                SteamNerd.SendMessage(string.Format("{0} loses ${1}!", playerName, -net), _chat);
+            }
+        }
+
+        /// <summary>
+        /// Restart to a new round.
+        /// </summary>
+        public void RestartRound()
+        {
+            // Get the players currently playing.
+            var steamIDs = _players.Select(player => player.Key);
+
+            // Erase the current players
             _players = new Dictionary<SteamID, Player>();
 
+            // Add each player
             foreach (var steamID in steamIDs)
             {
-                AddPlayer(steamID, callback.ChatRoomID, false);
+                AddPlayer(steamID, false);
             }
 
-            Thread.Sleep(5000);
+            // Wait for 5 seconds.
+            var delay = new System.Timers.Timer(5000);
+            delay.AutoReset = false;
+            delay.Elapsed += (src, e) => ChangeState(State.Betting);
+            delay.Start();
+        }
 
-            StartBetting(callback);
+        /// <summary>
+        /// Joins the blackjack game.
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <param name="args"></param>
+        public void Join(SteamFriends.ChatMsgCallback callback, string[] args)
+        {
+            var chat = callback.ChatRoomID;
+            var chatter = callback.ChatterID;
+
+            if ((_gameState == State.NoGame || _gameState == State.Betting) && !_players.ContainsKey(chatter))
+            {
+                _chat = chat;
+                AddPlayer(chatter);
+
+                if (_gameState == State.NoGame)
+                {
+                    ChangeState(State.Betting);
+                }
+            }
+            else
+            {
+                if (!_players.ContainsKey(chatter) && !_waiting.Contains(chatter))
+                {
+                    _waiting.Add(chatter);
+                    SteamNerd.SendMessage(string.Format("{0} is in the waiting queue.", SteamNerd.ChatterNames[chatter]), chat);
+                }
+            }
         }
 
         public void PlayingCommands(SteamFriends.ChatMsgCallback callback, string[] args)
@@ -611,7 +631,7 @@ namespace STEAMNERD.Modules
                         Insure(callback, args);
                         break;
                     case "hand":
-                        PrintPlayersHands(callback.ChatterID, callback.ChatRoomID);
+                        PrintPlayersHands(callback.ChatterID);
                         break;
                 }
             }
@@ -620,7 +640,6 @@ namespace STEAMNERD.Modules
 
         public void PlayerBet(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            var chat = callback.ChatRoomID;
             var chatter = callback.ChatterID;
             var name = SteamNerd.ChatterNames[chatter];
             var money = _moneyModule.GetPlayerMoney(chatter);
@@ -632,7 +651,7 @@ namespace STEAMNERD.Modules
 
             if (args.Length < 2)
             {
-                SteamNerd.SendMessage("Usage: bet [amount]", chat, true);
+                SteamNerd.SendMessage("Usage: bet [amount]", _chat);
                 return;
             }
 
@@ -640,13 +659,13 @@ namespace STEAMNERD.Modules
 
             if (!int.TryParse(args[1], out amount) || amount <= 0)
             {
-                SteamNerd.SendMessage("You need to bet over $0.", chat, true);
+                SteamNerd.SendMessage("You need to bet over $0.", _chat);
                 return;
             }
 
             if (amount > money)
             {
-                SteamNerd.SendMessage(string.Format("{0}, you don't have that kind of money!", name), chat, true);
+                SteamNerd.SendMessage(string.Format("{0}, you don't have that kind of money!", name), _chat);
                 return;
             }
 
@@ -659,40 +678,15 @@ namespace STEAMNERD.Modules
             else
             {
                 // Payback the previous bet
-                _moneyModule.AddMoney(chatter, chat, better.Bet);
+                _moneyModule.AddMoney(chatter, _chat, better.Bet);
             }
 
             better.Bet = amount;
-            _moneyModule.AddMoney(chatter, chat, -amount);
+            _moneyModule.AddMoney(chatter, _chat, -amount);
 
-            SteamNerd.SendMessage(string.Format("{0} bet ${1}", name, amount), chat, true);
+            SteamNerd.SendMessage(string.Format("{0} bet ${1}", name, amount), _chat);
 
             CheckBets(callback);
-        }
-
-        public void Join(SteamFriends.ChatMsgCallback callback, string[] args)
-        {
-            var chat = callback.ChatRoomID;
-            var chatter = callback.ChatterID;
-
-            if ((_gameState == State.NoGame || _gameState == State.WaitingForPlayers || _gameState == State.Betting)
-                && !_players.ContainsKey(chatter))
-            {
-                AddPlayer(chatter, chat);
-
-                if (_gameState == State.NoGame)
-                {
-                    StartGame(callback);
-                }
-            }
-            else
-            {
-                if (!_players.ContainsKey(chatter) && !_waiting.Contains(chatter))
-                {
-                    _waiting.Add(chatter);
-                    SteamNerd.SendMessage(string.Format("{0} is in the waiting queue.", SteamNerd.ChatterNames[chatter]), chat, true);
-                }
-            }
         }
 
         public void Quit(SteamFriends.ChatMsgCallback callback, string[] args)
@@ -702,26 +696,28 @@ namespace STEAMNERD.Modules
             _players.Remove(chatter);
             SteamNerd.SendMessage(
                 string.Format("{0} is leaving the game.", SteamNerd.ChatterNames[chatter]),
-                callback.ChatRoomID,
-                true
+                _chat
             );
 
-            CheckEndGame(callback);
+            if (_players.Count == 0)
+            {
+                EndGame();
+            }
         }
 
         public void Hit(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            var chat = callback.ChatRoomID;
             var playerID = callback.ChatterID;
-            var name = SteamNerd.ChatterNames[playerID];
             var player = _players[playerID];
+            var name = SteamNerd.ChatterNames[playerID];
+
             var handNum = ParseHand(player, args);
             var hand = player.Hands[handNum];  
 
             if (hand.State != HandState.None)
             {
                 var errMsg = string.Format("{0}, you can't hit with this hand.", name);
-                SteamNerd.SendMessage(errMsg, chat, true);
+                SteamNerd.SendMessage(errMsg, _chat);
                 return;
             }
 
@@ -742,78 +738,71 @@ namespace STEAMNERD.Modules
                 hand.State = HandState.Charlie;
             }
 
-            PrintPlayersHands(playerID, chat);
-            CheckHands(callback);
+            PrintPlayersHands(playerID);
+            CheckHands();
         }
 
         public void Stand(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            var chat = callback.ChatRoomID;
             var playerID = callback.ChatterID;
-            var name = SteamNerd.ChatterNames[playerID];
             var player = _players[playerID];
+            var name = SteamNerd.ChatterNames[playerID];
+
             var handNum = ParseHand(player, args);
             var hand = player.Hands[handNum];
 
             if (hand.State != HandState.None)
             {
                 var errMsg = string.Format("{0}, you can't stand with this hand.", name);
-                SteamNerd.SendMessage(errMsg, chat, true);
+                SteamNerd.SendMessage(errMsg, _chat);
                 return;
             }
 
             hand.State = HandState.Stand;
 
-            PrintPlayersHands(playerID, chat);
-            CheckHands(callback);
+            PrintPlayersHands(playerID);
+            CheckHands();
         }
 
         public void DoubleDown(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            var chat = callback.ChatRoomID;
             var playerID = callback.ChatterID;
-            var name = SteamNerd.ChatterNames[playerID];
             var player = _players[playerID];
+            var name = SteamNerd.ChatterNames[playerID];
+
             var handNum = ParseHand(player, args);
             var hand = player.Hands[handNum];
 
             if (hand.State != HandState.None || hand.Cards.Count > 2)
             {
                 var errMsg = string.Format("{0}, you can't double down with this hand.", name);
-                SteamNerd.SendMessage(errMsg, chat, true);
+                SteamNerd.SendMessage(errMsg, _chat, true);
                 return;
             }
 
             if (_moneyModule.GetPlayerMoney(playerID) < player.Bet)
             {
                 var errMsg = string.Format("{0}, don't have enough money to double down!", name);
-                SteamNerd.SendMessage(errMsg, chat, true);
+                SteamNerd.SendMessage(errMsg, _chat, true);
                 return;
             }
 
-            _moneyModule.AddMoney(playerID, chat, -player.Bet);
+            _moneyModule.AddMoney(playerID, _chat, -player.Bet);
             Deal(hand);
 
             var value = hand.GetValue();
-            if (value > 21)
-            {
-                hand.State = HandState.Bust;
-            }
-            else
-            {
-                hand.State = HandState.DoubleDown;
-            }
+            hand.State = value > 21 ? HandState.Bust : HandState.DoubleDown;
 
-            PrintPlayersHands(playerID, chat);
-            CheckHands(callback);
+            PrintPlayersHands(playerID);
+            CheckHands();
         }
 
         public void Split(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            var chat = callback.ChatRoomID;
             var playerID = callback.ChatterID;
-            var name = SteamNerd.ChatterNames[playerID];
             var player = _players[playerID];
+            var name = SteamNerd.ChatterNames[playerID];
+
             var handNum = ParseHand(player, args);
             var hand1 = player.Hands[handNum];
             var bet = player.Bet;
@@ -821,18 +810,18 @@ namespace STEAMNERD.Modules
             if (hand1.State != HandState.None || hand1.Cards.Count != 2 || hand1.Cards[0].GetValue() != hand1.Cards[1].GetValue())
             {
                 var errMsg = string.Format("{0}, you can't split this hand.", name);
-                SteamNerd.SendMessage(errMsg, chat, true);
+                SteamNerd.SendMessage(errMsg, _chat);
                 return;
             }
 
             if (_moneyModule.GetPlayerMoney(playerID) < player.Bet)
             {
                 var errMsg = string.Format("{0}, don't have enough money to split!", name);
-                SteamNerd.SendMessage(errMsg, chat, true);
+                SteamNerd.SendMessage(errMsg, _chat);
                 return;
             }
 
-            _moneyModule.AddMoney(playerID, chat, -player.Bet);
+            _moneyModule.AddMoney(playerID, _chat, -player.Bet);
             
             // Split the hand
             var hand2 = new Hand();
@@ -852,35 +841,35 @@ namespace STEAMNERD.Modules
             {
                 if (aceSplit)
                 {
-                    // Splits aren't considered natural
+                    // Splits aren't considered natural blackjacks
                     hand.State = hand.GetValue() == 21 ? HandState.Stand : HandState.AceSplit;
                 }
             }
 
-            PrintPlayersHands(playerID, chat);
-            CheckHands(callback);
+            PrintPlayersHands(playerID);
+            CheckHands();
         }
 
         public void Surrender(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            var chat = callback.ChatRoomID;
             var playerID = callback.ChatterID;
-            var name = SteamNerd.ChatterNames[playerID];
             var player = _players[playerID];
+            var name = SteamNerd.ChatterNames[playerID];
+
             var handNum = ParseHand(player, args);
             var hand = player.Hands[handNum];
 
             if (hand.State != HandState.None)
             {
                 var errMsg = string.Format("{0}, you can't surrender with this hand.", name);
-                SteamNerd.SendMessage(errMsg, chat, true);
+                SteamNerd.SendMessage(errMsg, _chat);
                 return;
             }
 
             hand.State = HandState.Surrender;
 
-            PrintPlayersHands(playerID, chat);
-            CheckHands(callback);
+            PrintPlayersHands(playerID);
+            CheckHands();
         }
 
         public void Insure(SteamFriends.ChatMsgCallback callback, string[] args)
@@ -911,7 +900,7 @@ namespace STEAMNERD.Modules
             _canInsure = false;
         }
 
-        public void PrintPlayersHands(SteamID playerID, SteamID chat)
+        public void PrintPlayersHands(SteamID playerID)
         {
             var name = SteamNerd.ChatterNames[playerID];
             var player = _players[playerID];
@@ -925,10 +914,10 @@ namespace STEAMNERD.Modules
                 message += string.Format(format, i + 1, hand, (hand.State == HandState.None ? "" : hand.State.ToString()));
             }
 
-            SteamNerd.SendMessage(message, chat, true);
+            SteamNerd.SendMessage(message, _chat, true);
         }
 
-        public void AddPlayer(SteamID steamID, SteamID chat, bool announce = true)
+        public void AddPlayer(SteamID steamID, bool announce = true)
         {
             var name = SteamNerd.ChatterNames[steamID];
             var player = new Player();
@@ -936,31 +925,26 @@ namespace STEAMNERD.Modules
 
             if (announce)
             {
-                SteamNerd.SendMessage(string.Format("{0} is joining blackjack!", name), chat, true);
-            }
-        }
-
-        private void CheckEndGame(SteamFriends.ChatMsgCallback callback)
-        {
-            if (_players.Count == 0)
-            {
-                SteamNerd.SendMessage("No players! Quitting blackjack.", callback.ChatRoomID, true);
-                _gameState = State.NoGame;
-
-                foreach (var timer in _countdown)
-                {
-                    timer.Stop();
-                }
+                SteamNerd.SendMessage(string.Format("{0} is joining blackjack!", name), _chat, true);
             }
         }
 
         /// <summary>
-        /// Payout insurance to players that bought it
+        /// Display the ending message and end the game.
+        /// </summary>
+        private void EndGame()
+        {
+            SteamNerd.SendMessage("No players! Quitting blackjack.", _chat, true);
+            _preRoundTimer.Stop();
+            ChangeState(State.NoGame);
+        }
+
+        /// <summary>
+        /// Pays out insurance to players that bought it.
         /// </summary>
         /// <param name="callback"></param>
-        private void PayInsurance(SteamFriends.ChatMsgCallback callback)
+        private void PayInsurance()
         {
-            var chat = callback.ChatRoomID;
             foreach (var playerKV in _players)
             {
                 var playerID = playerKV.Key;
@@ -970,18 +954,18 @@ namespace STEAMNERD.Modules
                 if (player.HasInsurance)
                 {
                     var winnings = (player.Bet / 2) * 3;
-                    SteamNerd.SendMessage(string.Format("{0} won ${1} in insurance!", name, winnings), chat, true);
-                    _moneyModule.AddMoney(playerID, chat, winnings);
+                    SteamNerd.SendMessage(string.Format("{0} won ${1} in insurance!", name, winnings), _chat, true);
+                    _moneyModule.AddMoney(playerID, _chat, winnings);
                 }
             }
         }
 
         /// <summary>
-        /// Checks the message to see if there's an argument for the hand
+        /// Checks the message to see if there's an argument for the hand.
         /// </summary>
-        /// <param name="player"></param>
-        /// <param name="args"></param>
-        /// <returns>The index of the hand (0 default)</returns>
+        /// <param name="player">The player doing the action.</param>
+        /// <param name="args">The command.</param>
+        /// <returns>The index of the hand (0 default).</returns>
         private int ParseHand(Player player, string[] args)
         {
             var hand = 0;
@@ -1014,49 +998,74 @@ namespace STEAMNERD.Modules
 
             if (_betsPlaced == _players.Count)
             {
-                foreach (var countdown in _countdown)
-                {
-                    countdown.Stop();
-                }
                 _preRoundTimer.Stop();
-                StartBlackjack(callback);
+                StartBlackjack();
             }
         }
 
         /// <summary>
-        /// Hits the dealer
+        /// Checks if all of the hands have been played completely.
         /// </summary>
-        /// <param name="chat">Chatroom Steam ID</param>
-        /// <returns>Is the card an Ace?</returns>
-        private bool DealerHit(SteamID chat)
+        private void CheckHands()
         {
-            SteamNerd.SendMessage("Dealer hits!", chat, true);
-            Deal(_dealerHand);
-
-            if (_dealerHand.Cards.Last().Rank == Deck.Rank.Ace)
+            foreach (var playerKV in _players)
             {
-                return true;
+                var player = playerKV.Value;
+
+                foreach (var hand in player.Hands)
+                {
+                    // Someone hasn't finished playing their hand!!!
+                    if (hand.State == HandState.None)
+                    {
+                        return;
+                    }
+                }
             }
 
-            return false;
+            // End the players turn since all hands are done.
+            ChangeState(State.DealerTurn);
         }
 
         /// <summary>
-        /// Prints the dealer's hand
+        /// Hits the dealer.
+        /// </summary>
+        /// <param name="chat">The chatroom for printing.</param>
+        /// <returns>The dealt card was an Ace.</returns>
+        private bool DealerHit()
+        {
+            SteamNerd.SendMessage("Dealer hits!", _chat, true);
+            Deal(_dealerHand);
+            
+            return _dealerHand.Cards.Last().Rank == Deck.Rank.Ace;
+        }
+
+        /// <summary>
+        /// Prints the dealer's hand.
         /// </summary>
         /// <param name="chat">The chatroom Steam ID</param>
-        private void PrintDealer(SteamID chat)
+        private void PrintDealer(bool hideHoleCard = false)
         {
-            SteamNerd.SendMessage(string.Format("Dealer:\n{0}", _dealerHand), chat, true);
+            if (hideHoleCard)
+            {
+                SteamNerd.SendMessage(string.Format("Dealer:\n{0} 🂠", _dealerHand.Cards[0]), _chat);
+            }
+            else
+            {
+                SteamNerd.SendMessage(string.Format("Dealer:\n{0} {1}", _dealerHand, _dealerHand.GetValue()), _chat);
+            }
         }
 
         /// <summary>
-        /// Draws a card and adds it to the hand
+        /// Draws cards and puts them in the hand.
         /// </summary>
-        /// <param name="hand">Hand to add the card to</param>
-        private void Deal(Hand hand)
+        /// <param name="hand">The hand to put the cards into.</param>
+        /// <param name="cards">The number of cards to deal.</param>
+        private void Deal(Hand hand, int cards = 1)
         {
-            hand.Cards.Add(_deck.DealCard());
+            for (var i = 0; i < cards; i++)
+            {
+                hand.Cards.Add(_deck.DealCard());
+            }
         }
     }
 }
