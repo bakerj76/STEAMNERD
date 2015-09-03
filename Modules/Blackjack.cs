@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Timers;
 using System.Threading;
 using SteamKit2;
 
@@ -227,7 +226,7 @@ namespace STEAMNERD.Modules
 
             var message = string.Format("Betting has started now!\n" +
                 "You have 30 seconds to place your bets.\n" +
-                "Join the game with {0}blackjack! Quit the game with 'quit'!\n" +
+                "Join the game with '{0}blackjack'! Quit the game with 'quit'!\n" +
                 "Use 'bet [money]' to place your bets.\n" +
                 "If you don't, you're gonna get kicked out of the game!\n",
                 SteamNerd.CommandChar);
@@ -320,7 +319,7 @@ namespace STEAMNERD.Modules
         }
 
         /// <summary>
-        /// Check if players can buy insurance.
+        /// Checks if players can buy insurance.
         /// </summary>
         private void CheckInsurance()
         {
