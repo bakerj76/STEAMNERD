@@ -4,7 +4,7 @@ using System.Timers;
 using System.IO;
 using SteamKit2;
 
-namespace STEAMNERD.Modules
+namespace SteamNerd.Modules
 {
     class Roulette : Module
     {

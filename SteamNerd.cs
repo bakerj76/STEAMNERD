@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 
 using SteamKit2;
 
-namespace STEAMNERD
+namespace SteamNerd
 {
     public class SteamNerd
     {

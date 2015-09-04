@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SteamKit2;
 
-namespace STEAMNERD.Modules
+namespace SteamNerd.Modules
 {
     class Mingag : Module
     {

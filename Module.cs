@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using SteamKit2;
 
-namespace STEAMNERD
+namespace SteamNerd
 {
     public abstract class Module
     {

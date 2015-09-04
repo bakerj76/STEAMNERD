@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using SteamKit2;
 
-namespace STEAMNERD.Modules
+namespace SteamNerd.Modules
 {
     /// <summary>
     /// Prints dice rolls to chat

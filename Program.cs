@@ -1,13 +1,19 @@
 ﻿using System;
 using System.Runtime.Remoting.Services;
 using SteamKit2.GC.Dota.Internal;
-using STEAMNERD.Modules;
+using SteamNerd.Modules;
 
-namespace STEAMNERD
+namespace SteamNerd
 {
     class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
+        {
+            //Login(args);
+            var asdf = new ModuleManager();
+        }
+
+        public static void Login(string[] args)
         {
             string user, password;
 
@@ -34,7 +40,7 @@ namespace STEAMNERD
             }
         }
 
-        static void LoadModules(SteamNerd steamNerd)
+        public static void LoadModules(SteamNerd steamNerd)
         {
             steamNerd.AddModule(new Money(steamNerd));
             steamNerd.AddModule(new LingT(steamNerd));

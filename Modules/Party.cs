@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using SteamKit2;
 
-namespace STEAMNERD.Modules
+namespace SteamNerd.Modules
 {
     class Party : Module
     {

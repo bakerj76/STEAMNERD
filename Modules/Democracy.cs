@@ -4,7 +4,7 @@ using System.Linq;
 using System.Timers;
 using SteamKit2;
 
-namespace STEAMNERD.Modules
+namespace SteamNerd.Modules
 {
     class Democracy : Module
     {
