@@ -231,7 +231,7 @@ namespace SteamNerd
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
             SteamFriends.SetPersonaState(EPersonaState.Online);
-            SteamFriends.SetPersonaName("xXxTrollSlayerxXx");
+            //SteamFriends.SetPersonaName("xXxTrollSlayerxXx");
         }
 
         private void OnPersonaState(SteamFriends.PersonaStateCallback callback)

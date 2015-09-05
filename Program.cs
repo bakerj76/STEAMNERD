@@ -9,8 +9,8 @@ namespace SteamNerd
     {
         public static void Main(string[] args)
         {
-            //Login(args);
-            var asdf = new ModuleManager();
+            Login(args);
+            //var asdf = new ModuleManager(null);
         }
 
         public static void Login(string[] args)
