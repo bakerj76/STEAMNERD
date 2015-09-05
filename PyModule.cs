@@ -21,20 +21,23 @@ namespace SteamNerd
         public delegate void JoinChat(SteamFriends.PersonaStateCallback callback);
         public delegate void LeaveChat(SteamFriends.ChatMemberInfoCallback callback);
         
-        public ChatMessage OnChatMessage;
-        public FriendMessage OnFriendMessage;
-        public SelfJoinChat OnSelfJoinChat;
-        public JoinChat OnJoinChat;
-        public LeaveChat OnLeaveChat;
+        public ChatMessage OnChatMessageCallback;
+        public FriendMessage OnFriendMessageCallback;
+        public SelfJoinChat OnSelfChatEnterCallback;
+        public JoinChat OnChatEnterCallback;
+        public LeaveChat OnChatLeaveCallback;
 
         public virtual string Name { get; set; }
         public virtual string Description { get; set; }
+        public string Path { get; }
+        public dynamic Variables { get; set; }
 
         protected List<Command> Commands;
 
-        public PyModule()
+        public PyModule(string path)
         {
             Commands = new List<Command>();
+            Path = path;
         }
 
         public void AddCommand(string match, string help, CommandCallback callback)
@@ -101,6 +104,46 @@ namespace SteamNerd
             }
 
             return candidate;
+        }
+
+        public void OnChatMessage(SteamFriends.ChatMsgCallback callback, string[] args)
+        {
+            if (OnChatMessageCallback != null)
+            {
+                OnChatMessageCallback(callback, args);
+            }
+        }
+
+        public void OnFriendMessage(SteamFriends.FriendMsgCallback callback, string[] args)
+        {
+            if (OnFriendMessageCallback != null)
+            {
+                OnFriendMessageCallback(callback, args);
+            }
+        }
+
+        public void OnSelfChatEnter(SteamFriends.ChatEnterCallback callback)
+        {
+            if (OnSelfChatEnterCallback != null)
+            {
+                OnSelfChatEnterCallback(callback);
+            }
+        }
+
+        public void OnChatEnter(SteamFriends.PersonaStateCallback callback)
+        {
+            if (OnChatEnterCallback != null)
+            {
+                OnChatEnterCallback(callback);
+            }
+        }
+
+        public void OnChatLeave(SteamFriends.ChatMemberInfoCallback callback)
+        {
+            if (OnChatLeaveCallback != null)
+            {
+                OnChatLeaveCallback(callback);
+            }
         }
     }
 }

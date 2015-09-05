@@ -42,7 +42,7 @@ namespace SteamNerd.Modules
             var rolls = GetRolls(numDice, sides);
             var rollStr = GetStringFromRolls(rolls);
 
-            SteamNerd.SendMessage(rollStr, callback.ChatRoomID, true);
+            SteamNerd.SendMessage(rollStr, callback.ChatRoomID);
         }
 
         /// <summary>

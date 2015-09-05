@@ -36,7 +36,7 @@ namespace SteamNerd.Modules
 
                 message += "\nIf you would like more help on a certain module, type {0}help [module]";
 
-                SteamNerd.SendMessage(string.Format(message, SteamNerd.CommandChar), chat, true);
+                SteamNerd.SendMessage(string.Format(message, SteamNerd.CommandChar), chat);
             }
             else
             {
@@ -46,7 +46,7 @@ namespace SteamNerd.Modules
 
                 if (module == null)
                 {
-                    SteamNerd.SendMessage(string.Format("Module {0} not found!", args[1]), chat, true);
+                    SteamNerd.SendMessage(string.Format("Module {0} not found!", args[1]), chat);
                     return;
                 }
 
@@ -79,7 +79,7 @@ namespace SteamNerd.Modules
                 message.Append(string.Format("{0}{1,-50}{2}\n", SteamNerd.CommandChar, match, command.Description));
             }
 
-            SteamNerd.SendMessage(message.ToString(), chatRoom, true);
+            SteamNerd.SendMessage(message.ToString(), chatRoom);
         }
     }
 }

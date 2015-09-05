@@ -18,7 +18,7 @@ namespace SteamNerd
         public readonly SteamFriends SteamFriends;
 
         public Dictionary<SteamID, string> ChatterNames { get; private set; }
-        public SteamID CurrentChatRoom;
+        public Dictionary<SteamID, Chatroom> Chatrooms { get; private set; }
 
         public readonly SteamUser SteamUser;
         private readonly SteamClient _steamClient;
@@ -31,6 +31,20 @@ namespace SteamNerd
 
         public List<Module> Modules;
         private Dictionary<string, Module> _modulesByName;
+
+        private ModuleManager _moduleManager;
+
+        public class Chatroom
+        {
+            public string Name { get; set; }
+            public List<SteamID> Chatters { get; private set; }
+
+            public Chatroom(string name)
+            {
+                Name = name;
+                Chatters = new List<SteamID>();
+            }
+        }
 
         public SteamNerd(string user, string pass)
         {
@@ -45,10 +59,20 @@ namespace SteamNerd
 
             Modules = new List<Module>();
             _modulesByName = new Dictionary<string, Module>();
-            CurrentChatRoom = null;
 
             ChatterNames = new Dictionary<SteamID, string>();
+            Chatrooms = new Dictionary<SteamID, Chatroom>();
 
+            _moduleManager = new ModuleManager(this);
+
+            SubscribeCallbacks();
+        }
+
+        /// <summary>
+        /// Subscribes the functions to the SteamKit callbacks.
+        /// </summary>
+        private void SubscribeCallbacks()
+        {
             #region Steam Client Callbacks
 
             _manager.Subscribe<SteamClient.ConnectedCallback>(OnConnect);
@@ -78,6 +102,7 @@ namespace SteamNerd
             #endregion
         }
 
+        #region Logging On/Off
         public void Connect()
         {
             IsRunning = true;
@@ -227,29 +252,53 @@ namespace SteamNerd
         {
             Console.WriteLine("Logging off of {0}!", _user);
         }
+        #endregion
 
+        /// <summary>
+        /// Sets the persona state to online and, since logging in changes the
+        /// bot's name to [unknown] sometimes, sets the persona name.
+        /// </summary>
+        /// <param name="callback"></param>
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
+            // TODO: put this stuff in an .ini file
             SteamFriends.SetPersonaState(EPersonaState.Online);
-            //SteamFriends.SetPersonaName("xXxTrollSlayerxXx");
+            SteamFriends.SetPersonaName("xXxTrollSlayerxXx");
         }
 
+        /// <summary>
+        /// Gets someone's name when joining a chatroom and fires off 
+        /// OnFriendChatEnter module callbacks.
+        /// </summary>
+        /// <param name="callback"></param>
         private void OnPersonaState(SteamFriends.PersonaStateCallback callback)
         {
-            if (CurrentChatRoom == null || callback.SourceSteamID != CurrentChatRoom) return;
-            
             var friendID = callback.FriendID;
+            var name = callback.Name;
 
-            if (callback.State != EPersonaState.Offline && !ChatterNames.ContainsKey(friendID))
+            if (callback.State == EPersonaState.Offline ||
+                !callback.SourceSteamID.IsChatAccount ||
+                ChatterNames.ContainsKey(friendID))
             {
-                Console.WriteLine("Adding {0}", callback.Name);
-                ChatterNames.Add(friendID, callback.Name);
-
-                foreach (var module in Modules)
-                {
-                    module.OnFriendChatEnter(callback);
-                }
+                return;
             }
+
+            Console.WriteLine("Adding {0}", name);
+            ChatterNames.Add(friendID, name);
+
+            if (!Chatrooms.ContainsKey(callback.SourceSteamID))
+            {
+                Chatrooms[callback.SourceSteamID] = new Chatroom("[unknown]");
+            }
+
+            Chatrooms[callback.SourceSteamID].Chatters.Add(friendID);
+
+            foreach (var module in Modules)
+            {
+                module.OnFriendChatEnter(callback);
+            }
+
+            _moduleManager.EnteredChat(callback);
         }
 
         private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
@@ -258,11 +307,15 @@ namespace SteamNerd
             {
                 module.OnFriendMsg(callback);
             }
+
+            _moduleManager.FriendMessageSent(callback, MessageToArgs(callback.Message));
         }
 
         private void OnChatMemberInfo(SteamFriends.ChatMemberInfoCallback callback)
         {
-            if (callback.ChatRoomID != CurrentChatRoom) return;
+            var chatRoomID = callback.ChatRoomID;
+
+            if (!Chatrooms.ContainsKey(chatRoomID)) return;
 
             var stateChangeInfo = callback.StateChangeInfo;
             var chatterID = stateChangeInfo.ChatterActedOn;
@@ -273,17 +326,18 @@ namespace SteamNerd
                 case EChatMemberStateChange.Disconnected:
                 case EChatMemberStateChange.Kicked:
                 case EChatMemberStateChange.Left:
-                {
-                    Console.WriteLine("Removing {0}", ChatterNames[chatterID]);
-
+                    Console.WriteLine("Removing {0} from {1}", ChatterNames[chatterID], Chatrooms[chatRoomID].Name);
+                    
                     foreach (var module in Modules)
                     {
                         module.OnFriendChatLeave(callback);
                     }
 
+                    _moduleManager.LeftChat(callback);
                     ChatterNames.Remove(chatterID);
+                    Chatrooms[chatRoomID].Chatters.Remove(chatterID);
+                    
                     break;
-                }
             }
         }
 
@@ -291,7 +345,24 @@ namespace SteamNerd
         {
             if (callback.ChatMsgType != EChatEntryType.ChatMsg) return;
 
-            var listArgs = callback.Message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            var args = MessageToArgs(callback.Message);
+
+            foreach (var module in Modules.Where(module => module.Match(callback)))
+            {
+                module.OnChatMsg(callback);
+            }
+
+            foreach (var module in Modules)
+            {
+                module.RunCommand(callback, args);
+            }
+
+            _moduleManager.ChatMessageSent(callback, args);
+        }
+
+        private static string[] MessageToArgs(string message)
+        {
+            var listArgs = message.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
 
             for (var i = 0; i < listArgs.Count; i++)
             {
@@ -304,29 +375,13 @@ namespace SteamNerd
                     i += split.Length - 1;
                 }
             }
-            
-            var args = listArgs.ToArray();
 
-            foreach (var module in Modules.Where(module => module.Match(callback)))
-            {
-                module.OnChatMsg(callback);
-            }
-
-            foreach (var module in Modules)
-            {
-                module.RunCommand(callback, args);
-            }
+            return listArgs.ToArray();
         }
 
         private void OnChatInvite(SteamFriends.ChatInviteCallback callback)
         {
             Console.WriteLine("Joining chat {0} ({1})...", callback.ChatRoomName, callback.ChatRoomID.Render());
-
-            if (CurrentChatRoom == null)
-            {
-                CurrentChatRoom = callback.ChatRoomID;
-            }
-
             SteamFriends.JoinChat(callback.ChatRoomID);
         }
 
@@ -339,12 +394,23 @@ namespace SteamNerd
                 return;
             }
 
+            if (!Chatrooms.ContainsKey(callback.ChatID))
+            {
+                Chatrooms[callback.ChatID] = new Chatroom(callback.ChatRoomName);
+            }
+            else
+            {
+                Chatrooms[callback.ChatID].Name = callback.ChatRoomName;
+            }
+
             Console.WriteLine("Joined chat.");
 
             foreach (var module in Modules)
             {
                 module.OnSelfChatEnter(callback);
             }
+
+            _moduleManager.SelfEnteredChat(callback);
         }
 
         private void OnFriendsList(SteamFriends.FriendsListCallback callback)
@@ -366,8 +432,8 @@ namespace SteamNerd
         /// </summary>
         /// <param name="message">The chat message</param>
         /// <param name="steamID">The person or the chat room to send to</param>
-        /// <param name="isChat">Is this a chat room or a person?</param>
-        public void SendMessage(string message, SteamID steamID, bool isChat = true)
+        /// 
+        public void SendMessage(string message, SteamID steamID)
         {
             if (steamID.IsChatAccount)
             {
@@ -406,6 +472,11 @@ namespace SteamNerd
             {
                 return null;
             }
+        }
+
+        public string GetName(SteamID steamID)
+        {
+            return ChatterNames.ContainsKey(steamID) ? ChatterNames[steamID] : null;
         }
     }
 }

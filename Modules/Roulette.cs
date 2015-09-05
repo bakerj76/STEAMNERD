@@ -74,7 +74,7 @@ namespace SteamNerd.Modules
             {
                 if (_players.Contains(callback.ChatterID))
                 {
-                    SteamNerd.SendMessage(string.Format("{0}, you're already playing. Dumbass.", name), chat, true);
+                    SteamNerd.SendMessage(string.Format("{0}, you're already playing. Dumbass.", name), chat);
                     return;
                 }
 
@@ -82,45 +82,45 @@ namespace SteamNerd.Modules
                 {
                     if (args.Length < 2)
                     {
-                        SteamNerd.SendMessage(string.Format("Usage: {0}enter [money]", SteamNerd.CommandChar), chat, true);
+                        SteamNerd.SendMessage(string.Format("Usage: {0}enter [money]", SteamNerd.CommandChar), chat);
                         return;
                     }
 
                     int amount;
                     if (!int.TryParse(args[1], out amount))
                     {
-                        SteamNerd.SendMessage(string.Format("{0}, that isn't a number.", name), chat, true);
+                        SteamNerd.SendMessage(string.Format("{0}, that isn't a number.", name), chat);
                         return;
                     }
 
                     if (amount <= 0)
                     {
-                        SteamNerd.SendMessage(string.Format("{0}, you gotta bet more than $0.", name), chat, true);
+                        SteamNerd.SendMessage(string.Format("{0}, you gotta bet more than $0.", name), chat);
                         return;
                     }
 
                     if (_moneyModule.GetPlayerMoney(chatter) < amount)
                     {
-                        SteamNerd.SendMessage(string.Format("{0}, you don't have that kind of money!", name), chat, true);
+                        SteamNerd.SendMessage(string.Format("{0}, you don't have that kind of money!", name), chat);
                         return;
                     }
 
                     _currentBet = amount;
                     _moneyModule.AddMoney(chatter, chat, -amount);
-                    SteamNerd.SendMessage(string.Format("{0} bet ${1}. Type {2}enter to join and match it.", name, amount, SteamNerd.CommandChar), chat, true);
+                    SteamNerd.SendMessage(string.Format("{0} bet ${1}. Type {2}enter to join and match it.", name, amount, SteamNerd.CommandChar), chat);
                     _players.Add(chatter);
                 }
                 else if (_players.Count == 1)
                 {
                     if (_moneyModule.GetPlayerMoney(chatter) < _currentBet)
                     {
-                        SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}!", name, _currentBet), chat, true);
+                        SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}!", name, _currentBet), chat);
                         return;
                     }
 
                     _moneyModule.AddMoney(chatter, chat, -_currentBet);
                     
-                    SteamNerd.SendMessage(string.Format("{0} has entered, matching ${1}. How brave...", name, _currentBet), chat, true);
+                    SteamNerd.SendMessage(string.Format("{0} has entered, matching ${1}. How brave...", name, _currentBet), chat);
 
                     _inProgress = true;
                     _players.Add(callback.ChatterID);
@@ -131,7 +131,7 @@ namespace SteamNerd.Modules
             // Someone enters at the WRONG time
             else
             {
-                SteamNerd.SendMessage(string.Format("There are already two players, {0}. Good job, idiot.", chatter), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("There are already two players, {0}. Good job, idiot.", chatter), callback.ChatRoomID);
             }
         }
 
@@ -152,13 +152,13 @@ namespace SteamNerd.Modules
             // If someone bets early
             if (!_inProgress)
             {
-                SteamNerd.SendMessage(string.Format("There's no match to bet on, {0}. Good job, idiot.", name), chat, true);
+                SteamNerd.SendMessage(string.Format("There's no match to bet on, {0}. Good job, idiot.", name), chat);
             }
             else if (!_betTimerOver)
             {
                 if (args.Length < 3)
                 {
-                    SteamNerd.SendMessage(string.Format("Usage: {0}bet [player] [money]", SteamNerd.CommandChar), chat, true);
+                    SteamNerd.SendMessage(string.Format("Usage: {0}bet [player] [money]", SteamNerd.CommandChar), chat);
                     return;
                 }
 
@@ -166,7 +166,7 @@ namespace SteamNerd.Modules
 
                 if (!int.TryParse(args[2], out bet))
                 {
-                    SteamNerd.SendMessage(string.Format("Usage: {0}bet [player] [money]", SteamNerd.CommandChar), chat, true);
+                    SteamNerd.SendMessage(string.Format("Usage: {0}bet [player] [money]", SteamNerd.CommandChar), chat);
                     return;
                 }
 
@@ -190,7 +190,7 @@ namespace SteamNerd.Modules
             var startMessage = string.Format("Wow! {0} and {1} are going head to head!\n" +
                 "Place your bets using !bet [player] [money].\n" +
                 "You have 30 seconds. All bets are double or nothing.", player1, player2);
-            SteamNerd.SendMessage(startMessage, chatroom, true);
+            SteamNerd.SendMessage(startMessage, chatroom);
 
             _betTimer = new Timer(30000);
             _betTimer.Elapsed += (src, e) => { StartRoulette(chatroom); };
@@ -204,7 +204,7 @@ namespace SteamNerd.Modules
 
                 timer = new Timer(30000 - i * 1000);
                 timer.AutoReset = false;
-                timer.Elapsed += (src, e) => SteamNerd.SendMessage(countdownString, chatroom, true);;
+                timer.Elapsed += (src, e) => SteamNerd.SendMessage(countdownString, chatroom); ;
                 timer.Start();
             }
         }
@@ -217,8 +217,8 @@ namespace SteamNerd.Modules
             _magicNumber = _rand.Next(1, 7);
             _currentSpinner = 0;
             _betTimerOver = true;
-            SteamNerd.SendMessage(string.Format("Roulette has started!"), chatroom, true);
-            SteamNerd.SendMessage(string.Format("{0} goes first...", player1), chatroom, true);
+            SteamNerd.SendMessage(string.Format("Roulette has started!"), chatroom);
+            SteamNerd.SendMessage(string.Format("{0} goes first...", player1), chatroom);
         }
 
         private void PlayerSpin(SteamID chatter, SteamID chat)
@@ -227,7 +227,7 @@ namespace SteamNerd.Modules
             var name = SteamNerd.ChatterNames[chatter];
             var spin = _rand.Next(1, 7);
             
-            SteamNerd.SendMessage(string.Format("{0} spins the barrel...", name), chat, true);
+            SteamNerd.SendMessage(string.Format("{0} spins the barrel...", name), chat);
 
 
             var message = spin == _magicNumber ? "BOOM!" : "Click.";
@@ -241,7 +241,7 @@ namespace SteamNerd.Modules
         {
             _spinning = false;
             var name = SteamNerd.ChatterNames[chatter];
-            SteamNerd.SendMessage(message, chat, true);
+            SteamNerd.SendMessage(message, chat);
 
             if (loser)
             {
@@ -250,7 +250,7 @@ namespace SteamNerd.Modules
             }
             else
             {
-                SteamNerd.SendMessage(string.Format("{0} lives... for now.", name), chat, true);
+                SteamNerd.SendMessage(string.Format("{0} lives... for now.", name), chat);
                 KeepSpinning(chat);
             }
         }
@@ -262,7 +262,7 @@ namespace SteamNerd.Modules
             var player = _players[_currentSpinner];
             var name = SteamNerd.ChatterNames[player];
 
-            SteamNerd.SendMessage(string.Format("It's {0}'s turn to spin", name), chat, true);
+            SteamNerd.SendMessage(string.Format("It's {0}'s turn to spin", name), chat);
         }
 
         private void EndGame(SteamID chat)
@@ -271,7 +271,7 @@ namespace SteamNerd.Modules
             var player = _players[winner];
             var name = SteamNerd.ChatterNames[player];
 
-            SteamNerd.SendMessage(string.Format("{0} wins! They win ${1}", name, _pool), chat, true);
+            SteamNerd.SendMessage(string.Format("{0} wins! They win ${1}", name, _pool), chat);
             _moneyModule.AddMoney(player, chat, _pool);
 
             foreach(var bet in _bets)
@@ -281,7 +281,7 @@ namespace SteamNerd.Modules
                     var better = bet.Better;
                     var betterName = SteamNerd.ChatterNames[better];
                     var amount = bet.Money * 2;
-                    SteamNerd.SendMessage(string.Format("{0} wins ${1}", betterName, amount), chat, true);
+                    SteamNerd.SendMessage(string.Format("{0} wins ${1}", betterName, amount), chat);
 
                     _moneyModule.AddMoney(better, chat, amount);
                 }
@@ -295,13 +295,13 @@ namespace SteamNerd.Modules
 
             if (bet <= 0)
             {
-                SteamNerd.SendMessage(string.Format("{0}, you gotta bet more than $0.", chatterName), chat, true);
+                SteamNerd.SendMessage(string.Format("{0}, you gotta bet more than $0.", chatterName), chat);
                 return;
             }
 
             if (_moneyModule.GetPlayerMoney(chatter) < bet)
             {
-                SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}", chatterName, bet), chat, true);
+                SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}", chatterName, bet), chat);
                 return;
             }
 
@@ -317,7 +317,7 @@ namespace SteamNerd.Modules
                 }
             }
 
-            SteamNerd.SendMessage(string.Format("Can't find player {0}", side), chat, true);
+            SteamNerd.SendMessage(string.Format("Can't find player {0}", side), chat);
         }
 
         private void Reset()

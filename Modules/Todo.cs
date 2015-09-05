@@ -148,7 +148,7 @@ namespace SteamNerd.Modules
                         break;
                     default:
                         var message = string.Format("Unknown subcommand. Use {0}help for help.", SteamNerd.CommandChar);
-                        SteamNerd.SendMessage(message, callback.ChatRoomID, true);
+                        SteamNerd.SendMessage(message, callback.ChatRoomID);
                         break;
                 }
             }
@@ -160,7 +160,7 @@ namespace SteamNerd.Modules
 
             if (_todoList.Count == 0)
             {
-                SteamNerd.SendMessage("Wow! There's nothing to do!", chat, true);
+                SteamNerd.SendMessage("Wow! There's nothing to do!", chat);
             }
             else
             {
@@ -174,7 +174,7 @@ namespace SteamNerd.Modules
                     message += string.Format("{0}. {1}\n", theRealI, _todoList[i]);
                 }
 
-                SteamNerd.SendMessage(message, chat, true);
+                SteamNerd.SendMessage(message, chat);
             }
         }
 
@@ -235,13 +235,13 @@ namespace SteamNerd.Modules
         {
             if (args.Length < 2)
             {
-                SteamNerd.SendMessage("Invalid position!", chat, true);
+                SteamNerd.SendMessage("Invalid position!", chat);
             }
 
             int position;
             if (!int.TryParse(args[2], out position) || position > _todoList.Count || position < 1)
             {
-                SteamNerd.SendMessage("Invalid position!", chat, true);
+                SteamNerd.SendMessage("Invalid position!", chat);
                 return;
             }
 

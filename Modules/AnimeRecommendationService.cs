@@ -62,7 +62,7 @@ namespace SteamNerd.Modules
 
             var name = SteamNerd.ChatterNames[callback.ChatterID];
             var randomAnime = _animes[_rand.Next(_animes.Count)];
-            SteamNerd.SendMessage(string.Format("{0}, watch {1}!", name, randomAnime), callback.ChatRoomID, true);
+            SteamNerd.SendMessage(string.Format("{0}, watch {1}!", name, randomAnime), callback.ChatRoomID);
         }
 
         public void AddAnime(SteamFriends.ChatMsgCallback callback, string[] args)

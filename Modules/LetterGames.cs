@@ -66,7 +66,7 @@ namespace SteamNerd.Modules
                     Rules(callback);
                     break;
                 default:
-                    SteamNerd.SendMessage(string.Format("Usage: {0}letter on or {0}letter off", SteamNerd.CommandChar), callback.ChatRoomID, true);
+                    SteamNerd.SendMessage(string.Format("Usage: {0}letter on or {0}letter off", SteamNerd.CommandChar), callback.ChatRoomID);
                     break;
             }
         }
@@ -76,7 +76,7 @@ namespace SteamNerd.Modules
             if (_inProgress) return;
 
             _inProgress = true;
-            SteamNerd.SendMessage("The Letter Game is starting!", callback.ChatRoomID, true);
+            SteamNerd.SendMessage("The Letter Game is starting!", callback.ChatRoomID);
             ChooseLetter(callback);
 
             _changeTimer = new Timer(30000);
@@ -93,7 +93,7 @@ namespace SteamNerd.Modules
             if (!_inProgress) return;
 
             _inProgress = false;
-            SteamNerd.SendMessage("The Letter Game is over!", callback.ChatRoomID, true);
+            SteamNerd.SendMessage("The Letter Game is over!", callback.ChatRoomID);
             _changeTimer.Stop();
 
         }
@@ -102,11 +102,11 @@ namespace SteamNerd.Modules
         {
             if (_inProgress)
             {
-                SteamNerd.SendMessage(string.Format("If you type '{0}', you die!", _bannedLetter), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("If you type '{0}', you die!", _bannedLetter), callback.ChatRoomID);
             }
             else
             {
-                SteamNerd.SendMessage("No game in progress.", callback.ChatRoomID, true);
+                SteamNerd.SendMessage("No game in progress.", callback.ChatRoomID);
             }
         }
 

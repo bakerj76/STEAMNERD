@@ -231,7 +231,7 @@ namespace SteamNerd.Modules
                 "If you don't, you're gonna get kicked out of the game!\n",
                 SteamNerd.CommandChar);
 
-            SteamNerd.SendMessage(message, _chat, true);
+            SteamNerd.SendMessage(message, _chat);
 
             // Wait for bets.
             _preRoundTimer = new Countdown(SteamNerd, _chat, (src, e) => StartBlackjack(), PREROUND_TIMER, 3);
@@ -330,7 +330,7 @@ namespace SteamNerd.Modules
 
             SteamNerd.SendMessage(string.Format("Dealer has an ace. " +
                     "Insurance can be bought with {0}insurance",
-                    SteamNerd.CommandChar),
+                SteamNerd.CommandChar),
                 _chat);
         }
 
@@ -775,14 +775,14 @@ namespace SteamNerd.Modules
             if (hand.State != HandState.None || hand.Cards.Count > 2)
             {
                 var errMsg = string.Format("{0}, you can't double down with this hand.", name);
-                SteamNerd.SendMessage(errMsg, _chat, true);
+                SteamNerd.SendMessage(errMsg, _chat);
                 return;
             }
 
             if (_moneyModule.GetPlayerMoney(playerID) < player.Bet)
             {
                 var errMsg = string.Format("{0}, don't have enough money to double down!", name);
-                SteamNerd.SendMessage(errMsg, _chat, true);
+                SteamNerd.SendMessage(errMsg, _chat);
                 return;
             }
 
@@ -885,13 +885,13 @@ namespace SteamNerd.Modules
             {
                 if (_moneyModule.GetPlayerMoney(playerID) < bet)
                 {
-                    SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}! You can't buy insurance!", name, bet), chat, true);
+                    SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}! You can't buy insurance!", name, bet), chat);
                     return;
                 }
 
                 player.HasInsurance = true;
 
-                SteamNerd.SendMessage(string.Format("{0} bought insurance for ${1}.", name, bet), chat, true);
+                SteamNerd.SendMessage(string.Format("{0} bought insurance for ${1}.", name, bet), chat);
                 _moneyModule.AddMoney(playerID, chat, -bet);
             }
 
@@ -913,7 +913,7 @@ namespace SteamNerd.Modules
                 message += string.Format(format, i + 1, hand, (hand.State == HandState.None ? "" : hand.State.ToString()));
             }
 
-            SteamNerd.SendMessage(message, _chat, true);
+            SteamNerd.SendMessage(message, _chat);
         }
 
         public void AddPlayer(SteamID steamID, bool announce = true)
@@ -924,7 +924,7 @@ namespace SteamNerd.Modules
 
             if (announce)
             {
-                SteamNerd.SendMessage(string.Format("{0} is joining blackjack!", name), _chat, true);
+                SteamNerd.SendMessage(string.Format("{0} is joining blackjack!", name), _chat);
             }
         }
 
@@ -933,7 +933,7 @@ namespace SteamNerd.Modules
         /// </summary>
         private void EndGame()
         {
-            SteamNerd.SendMessage("No players! Quitting blackjack.", _chat, true);
+            SteamNerd.SendMessage("No players! Quitting blackjack.", _chat);
             _preRoundTimer.Stop();
             ChangeState(State.NoGame);
         }
@@ -953,7 +953,7 @@ namespace SteamNerd.Modules
                 if (player.HasInsurance)
                 {
                     var winnings = (player.Bet / 2) * 3;
-                    SteamNerd.SendMessage(string.Format("{0} won ${1} in insurance!", name, winnings), _chat, true);
+                    SteamNerd.SendMessage(string.Format("{0} won ${1} in insurance!", name, winnings), _chat);
                     _moneyModule.AddMoney(playerID, _chat, winnings);
                 }
             }
@@ -993,7 +993,7 @@ namespace SteamNerd.Modules
         {
             var chat = callback.ChatRoomID;
             var message = string.Format("{0}/{1} bets placed.", _betsPlaced, _players.Count);
-            SteamNerd.SendMessage(message, chat, true);
+            SteamNerd.SendMessage(message, chat);
 
             if (_betsPlaced == _players.Count)
             {
@@ -1032,7 +1032,7 @@ namespace SteamNerd.Modules
         /// <returns>The dealt card was an Ace.</returns>
         private bool DealerHit()
         {
-            SteamNerd.SendMessage("Dealer hits!", _chat, true);
+            SteamNerd.SendMessage("Dealer hits!", _chat);
             Deal(_dealerHand);
             
             return _dealerHand.Cards.Last().Rank == Deck.Rank.Ace;

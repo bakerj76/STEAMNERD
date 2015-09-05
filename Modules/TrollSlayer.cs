@@ -58,7 +58,7 @@ namespace SteamNerd.Modules
                 
 
                 var message = string.Format(messageString + minutesString + secondsString, chatter, minutes, seconds);
-                SteamNerd.SendMessage(message, callback.ChatRoomID, true);
+                SteamNerd.SendMessage(message, callback.ChatRoomID);
 
                 return;
             }
@@ -69,7 +69,7 @@ namespace SteamNerd.Modules
             timer.Reset();
             timer.Start();
 
-            SteamNerd.SendMessage(string.Format("SLAYING TROLL: {0}", SteamNerd.ChatterNames[troll]), callback.ChatRoomID, true);
+            SteamNerd.SendMessage(string.Format("SLAYING TROLL: {0}", SteamNerd.ChatterNames[troll]), callback.ChatRoomID);
 
             var delay = new Timer(1000);
             delay.AutoReset = false;

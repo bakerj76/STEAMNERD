@@ -71,8 +71,8 @@ namespace SteamNerd.Modules
             var sentence = args.Skip(1).Aggregate((current, next) => current + " " + next);
             sentence = sentence.Trim();
 
-            SteamNerd.SendMessage("Voting has started! Type aye or nay to vote.", callback.ChatRoomID, true);
-            SteamNerd.SendMessage(sentence, callback.ChatRoomID, true);
+            SteamNerd.SendMessage("Voting has started! Type aye or nay to vote.", callback.ChatRoomID);
+            SteamNerd.SendMessage(sentence, callback.ChatRoomID);
 
             // Reset ayes and nays
             _ayes = _nays = 0;
@@ -112,11 +112,11 @@ namespace SteamNerd.Modules
 
             if (_kickee == null)
             {
-                SteamNerd.SendMessage(string.Format("{0} not found!", kickeeName), chat, true);
+                SteamNerd.SendMessage(string.Format("{0} not found!", kickeeName), chat);
                 return;
             }
 
-            SteamNerd.SendMessage(string.Format("{0} wants to kick {1}! Type aye or nay to vote.", name, SteamNerd.ChatterNames[_kickee]), callback.ChatRoomID, true);
+            SteamNerd.SendMessage(string.Format("{0} wants to kick {1}! Type aye or nay to vote.", name, SteamNerd.ChatterNames[_kickee]), callback.ChatRoomID);
 
             // Reset ayes and nays
             _ayes = 1;
@@ -152,12 +152,12 @@ namespace SteamNerd.Modules
             if (message == "aye")
             {
                 _ayes++;
-                SteamNerd.SendMessage(string.Format("{0} voted aye", name), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("{0} voted aye", name), callback.ChatRoomID);
             }
             else if (message == "nay")
             {
                 _nays++;
-                SteamNerd.SendMessage(string.Format("{0} voted nay", name), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("{0} voted nay", name), callback.ChatRoomID);
             }
             else
             {
@@ -199,7 +199,7 @@ namespace SteamNerd.Modules
                 _ayes, ayePercent, 
                 _nays, nayPercent);
 
-            SteamNerd.SendMessage(message, chat, true);
+            SteamNerd.SendMessage(message, chat);
 
             if (!votekick) return;
 
@@ -209,7 +209,7 @@ namespace SteamNerd.Modules
             // 50% of chatters need to vote
             if (total < (chatterCount + 1) / 2)
             {
-                SteamNerd.SendMessage("50% of the chatters need to vote!", chat, true);
+                SteamNerd.SendMessage("50% of the chatters need to vote!", chat);
                 return;
             }
 

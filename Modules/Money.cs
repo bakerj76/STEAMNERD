@@ -146,7 +146,7 @@ namespace SteamNerd.Modules
                 AddSteamID(chatter);
             }
 
-            SteamNerd.SendMessage(string.Format("{0} has ${1}", name, _money[callback.ChatterID]), callback.ChatRoomID, true);
+            SteamNerd.SendMessage(string.Format("{0} has ${1}", name, _money[callback.ChatterID]), callback.ChatRoomID);
         }
 
         public void PrintLoans(SteamFriends.ChatMsgCallback callback, string[] args)
@@ -159,14 +159,14 @@ namespace SteamNerd.Modules
                 AddSteamID(chatter);
             }
 
-            SteamNerd.SendMessage(string.Format("{0} has ${1} in loans", name, _loans[chatter]), callback.ChatRoomID, true);
+            SteamNerd.SendMessage(string.Format("{0} has ${1} in loans", name, _loans[chatter]), callback.ChatRoomID);
         }
 
         public void GetLoan(SteamFriends.ChatMsgCallback callback, string[] args)
         {
             if (args.Length < 2)
             {
-                SteamNerd.SendMessage(string.Format("Usage: {0}loan [money]", SteamNerd.CommandChar), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("Usage: {0}loan [money]", SteamNerd.CommandChar), callback.ChatRoomID);
                 return;
             }
 
@@ -184,13 +184,13 @@ namespace SteamNerd.Modules
 
             if (!int.TryParse(args[1], out amount))
             {
-                SteamNerd.SendMessage(string.Format("{0}, that's not a number", name), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("{0}, that's not a number", name), callback.ChatRoomID);
                 return;
             }
 
             if (amount < 0)
             {
-                SteamNerd.SendMessage(string.Format("{0}, you can't borrow negative money", name), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("{0}, you can't borrow negative money", name), callback.ChatRoomID);
                 return;
             }
 
@@ -204,7 +204,7 @@ namespace SteamNerd.Modules
 
             if (args.Length < 2)
             {
-                SteamNerd.SendMessage(string.Format("Usage: {0}payback [money]", SteamNerd.CommandChar), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("Usage: {0}payback [money]", SteamNerd.CommandChar), callback.ChatRoomID);
                 return;
             }
 
@@ -220,19 +220,19 @@ namespace SteamNerd.Modules
 
             if (loans == 0)
             {
-                SteamNerd.SendMessage(string.Format("{0}, you don't have any loans to payback!", name), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("{0}, you don't have any loans to payback!", name), callback.ChatRoomID);
                 return;
             }
 
             if (!long.TryParse(args[1], out amount))
             {
-                SteamNerd.SendMessage(string.Format("{0}, that's not a number", name), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("{0}, that's not a number", name), callback.ChatRoomID);
                 return;
             }
 
             if (amount < 0)
             {
-                SteamNerd.SendMessage(string.Format("{0}, you can't payback negative money", name), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("{0}, you can't payback negative money", name), callback.ChatRoomID);
                 return;
             }
 
@@ -243,7 +243,7 @@ namespace SteamNerd.Modules
 
             if (amount > money)
             {
-                SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}!", name, amount), callback.ChatRoomID, true);
+                SteamNerd.SendMessage(string.Format("{0}, you don't have ${1}!", name, amount), callback.ChatRoomID);
                 return;
             }
 
@@ -268,7 +268,7 @@ namespace SteamNerd.Modules
             }
             catch (OverflowException)
             {
-                SteamNerd.SendMessage(string.Format("Whoa, {0}, you've got way too much money", name), chat, true);
+                SteamNerd.SendMessage(string.Format("Whoa, {0}, you've got way too much money", name), chat);
                 return;
             }
 
@@ -287,7 +287,7 @@ namespace SteamNerd.Modules
             }
             catch (OverflowException)
             {
-                SteamNerd.SendMessage(string.Format("Whoa, {0}, you've borrowed way too much", name), chat, true);
+                SteamNerd.SendMessage(string.Format("Whoa, {0}, you've borrowed way too much", name), chat);
                 return;
             }
 

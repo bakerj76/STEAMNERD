@@ -23,9 +23,10 @@ namespace SteamNerd.Modules
 
         public override void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
         {
-            if (SteamNerd.CurrentChatRoom != null)
+            if (SteamNerd.Chatrooms.Count != 0)
             {
-                SteamNerd.SteamFriends.InviteUserToChat(callback.Sender, SteamNerd.CurrentChatRoom);
+                var chat = SteamNerd.Chatrooms.First();
+                SteamNerd.SteamFriends.InviteUserToChat(callback.Sender, chat.Key);
             }
         }
     }

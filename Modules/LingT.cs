@@ -27,7 +27,7 @@ namespace SteamNerd.Modules
         public override void OnChatMsg(SteamFriends.ChatMsgCallback callback)
         {
             var stupidMessages = new[] {"selamat pagi", "ling t", "selamat malam"};
-            SteamNerd.SendMessage(stupidMessages[_rand.Next(stupidMessages.Length)], callback.ChatRoomID, true);
+            SteamNerd.SendMessage(stupidMessages[_rand.Next(stupidMessages.Length)], callback.ChatRoomID);
         }
     }
 }

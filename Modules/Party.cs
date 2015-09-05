@@ -33,7 +33,7 @@ namespace SteamNerd.Modules
                 }
             }
 
-            SteamNerd.SendMessage(string.Format("INVITING {0} IDIOTS TO THE CHAT.", inviteCount), callback.ChatRoomID, true);
+            SteamNerd.SendMessage(string.Format("INVITING {0} IDIOTS TO THE CHAT.", inviteCount), callback.ChatRoomID);
         }
     }
 }
