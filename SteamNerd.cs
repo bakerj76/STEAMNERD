@@ -23,16 +23,12 @@ namespace SteamNerd
         public readonly SteamUser SteamUser;
         private readonly SteamClient _steamClient;
         private readonly CallbackManager _manager;
+        private ModuleManager _moduleManager;
 
         private readonly string _user;
         private string _password;
         private string _authCode;
         private string _twoFactorAuth;
-
-        public List<Module> Modules;
-        private Dictionary<string, Module> _modulesByName;
-
-        private ModuleManager _moduleManager;
 
         public class Chatroom
         {
@@ -53,17 +49,13 @@ namespace SteamNerd
 
             _steamClient = new SteamClient();
             _manager = new CallbackManager(_steamClient);
+            _moduleManager = new ModuleManager(this);
 
             SteamUser = _steamClient.GetHandler<SteamUser>();
             SteamFriends = _steamClient.GetHandler<SteamFriends>();
 
-            Modules = new List<Module>();
-            _modulesByName = new Dictionary<string, Module>();
-
             ChatterNames = new Dictionary<SteamID, string>();
             Chatrooms = new Dictionary<SteamID, Chatroom>();
-
-            _moduleManager = new ModuleManager(this);
 
             SubscribeCallbacks();
         }
@@ -285,29 +277,13 @@ namespace SteamNerd
 
             Console.WriteLine("Adding {0}", name);
             ChatterNames.Add(friendID, name);
-
-            if (!Chatrooms.ContainsKey(callback.SourceSteamID))
-            {
-                Chatrooms[callback.SourceSteamID] = new Chatroom("[unknown]");
-            }
-
+            AddChatroom(callback.SourceSteamID, null);
             Chatrooms[callback.SourceSteamID].Chatters.Add(friendID);
-
-            foreach (var module in Modules)
-            {
-                module.OnFriendChatEnter(callback);
-            }
-
             _moduleManager.EnteredChat(callback);
         }
 
         private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
         {
-            foreach (var module in Modules)
-            {
-                module.OnFriendMsg(callback);
-            }
-
             _moduleManager.FriendMessageSent(callback, MessageToArgs(callback.Message));
         }
 
@@ -327,16 +303,9 @@ namespace SteamNerd
                 case EChatMemberStateChange.Kicked:
                 case EChatMemberStateChange.Left:
                     Console.WriteLine("Removing {0} from {1}", ChatterNames[chatterID], Chatrooms[chatRoomID].Name);
-                    
-                    foreach (var module in Modules)
-                    {
-                        module.OnFriendChatLeave(callback);
-                    }
-
                     _moduleManager.LeftChat(callback);
                     ChatterNames.Remove(chatterID);
                     Chatrooms[chatRoomID].Chatters.Remove(chatterID);
-                    
                     break;
             }
         }
@@ -346,17 +315,6 @@ namespace SteamNerd
             if (callback.ChatMsgType != EChatEntryType.ChatMsg) return;
 
             var args = MessageToArgs(callback.Message);
-
-            foreach (var module in Modules.Where(module => module.Match(callback)))
-            {
-                module.OnChatMsg(callback);
-            }
-
-            foreach (var module in Modules)
-            {
-                module.RunCommand(callback, args);
-            }
-
             _moduleManager.ChatMessageSent(callback, args);
         }
 
@@ -394,22 +352,8 @@ namespace SteamNerd
                 return;
             }
 
-            if (!Chatrooms.ContainsKey(callback.ChatID))
-            {
-                Chatrooms[callback.ChatID] = new Chatroom(callback.ChatRoomName);
-            }
-            else
-            {
-                Chatrooms[callback.ChatID].Name = callback.ChatRoomName;
-            }
-
+            AddChatroom(callback.ChatID, callback.ChatRoomName);
             Console.WriteLine("Joined chat.");
-
-            foreach (var module in Modules)
-            {
-                module.OnSelfChatEnter(callback);
-            }
-
             _moduleManager.SelfEnteredChat(callback);
         }
 
@@ -445,36 +389,7 @@ namespace SteamNerd
             }
         }
 
-        public void AddModule(Module module)
-        {
-            Modules.Add(module);
-
-            if (module.Name != null)
-            {
-                var name = module.Name.ToLower().Trim();
-
-                if (name != "" && !_modulesByName.ContainsKey(name))
-                {
-                    _modulesByName[name] = module;
-                }
-            }
-        }
-
-        public Module GetModule(string name)
-        {
-            name = name.ToLower().Trim();
-
-            if (_modulesByName.Keys.Contains(name))
-            {
-                return _modulesByName[name];
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public dynamic GetPyModule(string name)
+        public dynamic GetModule(string name)
         {
             return _moduleManager.GetModule(name);
         }
@@ -482,6 +397,22 @@ namespace SteamNerd
         public string GetName(SteamID steamID)
         {
             return ChatterNames.ContainsKey(steamID) ? ChatterNames[steamID] : null;
+        }
+
+        public void AddChatroom(SteamID chatroom, string name)
+        {
+            if (Chatrooms.ContainsKey(chatroom))
+            {
+                if (Chatrooms[chatroom].Name == null)
+                {
+                    Chatrooms[chatroom].Name = name;
+                }
+            }
+            else
+            {
+                Chatrooms[chatroom] = new Chatroom(name);
+                _moduleManager.AddChatroom(chatroom);
+            }
         }
     }
 }

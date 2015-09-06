@@ -28,13 +28,33 @@ namespace SteamNerd
         private JoinChat OnChatEnterCallback;
         private LeaveChat OnChatLeaveCallback;
 
+        protected List<Command> Commands;
+
         public virtual string Name { get; set; }
         public virtual string Description { get; set; }
         public virtual bool Global { get; set; }
         public string Path { get; }
         public dynamic Variables { get; set; }
 
-        protected List<Command> Commands;
+        private SteamID _chatroom;
+        public SteamID Chatroom
+        {
+            get
+            {
+                if (Global)
+                {
+                    throw new MemberAccessException("Module is global and doesn't have a chatroom");
+                }
+
+                return _chatroom;
+            }
+
+            set
+            {
+                _chatroom = value;
+            }
+
+        }
 
         public PyModule(string path)
         {
@@ -165,7 +185,7 @@ namespace SteamNerd
                 {
                     matched++;
 
-                    for (var i = 1; i < args.Length; i++)
+                    for (var i = 1; i < command.Match.Length; i++)
                     {
                         if (args[i] == command.Match[i])
                         {

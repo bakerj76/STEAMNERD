@@ -20,38 +20,38 @@ namespace SteamNerd.Modules
 
         public void GetHelp(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            var chat = callback.ChatRoomID;
+            //var chat = callback.ChatRoomID;
 
-            if (args.Length == 1)
-            {
-                var message = "Help is here to help you.\nModules:\n";
+            //if (args.Length == 1)
+            //{
+            //    var message = "Help is here to help you.\nModules:\n";
 
-                foreach (var module in SteamNerd.Modules)
-                {
-                    if (module.Name != null && module.Name != "")
-                    {
-                        message += module.Name + "\n";
-                    }
-                }
+            //    foreach (var module in SteamNerd.Modules)
+            //    {
+            //        if (module.Name != null && module.Name != "")
+            //        {
+            //            message += module.Name + "\n";
+            //        }
+            //    }
 
-                message += "\nIf you would like more help on a certain module, type {0}help [module]";
+            //    message += "\nIf you would like more help on a certain module, type {0}help [module]";
 
-                SteamNerd.SendMessage(string.Format(message, SteamNerd.CommandChar), chat);
-            }
-            else
-            {
-                var modString = args.Skip(1).Aggregate((mod, next) => mod + " " + next);
+            //    SteamNerd.SendMessage(string.Format(message, SteamNerd.CommandChar), chat);
+            //}
+            //else
+            //{
+            //    var modString = args.Skip(1).Aggregate((mod, next) => mod + " " + next);
 
-                var module = SteamNerd.GetModule(modString);
+            //    var module = SteamNerd.GetModule(modString);
 
-                if (module == null)
-                {
-                    SteamNerd.SendMessage(string.Format("Module {0} not found!", args[1]), chat);
-                    return;
-                }
+            //    if (module == null)
+            //    {
+            //        SteamNerd.SendMessage(string.Format("Module {0} not found!", args[1]), chat);
+            //        return;
+            //    }
 
-                ModuleHelp(module, chat);
-            }
+            //    ModuleHelp(module, chat);
+            //}
         }
 
         /// <summary>

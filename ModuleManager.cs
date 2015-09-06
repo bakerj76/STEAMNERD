@@ -22,15 +22,19 @@ namespace SteamNerd
         private FileSystemWatcher _watcher;
         private ScriptEngine _pyEngine;
 
-        private List<PyModule> _modules;
+        private List<string> _localModules;
+        private List<PyModule> _globalModules;
         private Dictionary<string, PyModule> _modulesByName;
+        private Dictionary<SteamID, List<PyModule>> _chatroomModules;
 
         public ModuleManager(SteamNerd steamNerd)
         {
             _steamNerd = steamNerd;
             _pyEngine = Python.CreateEngine();
-            _modules = new List<PyModule>();
+            _localModules = new List<string>();
+            _globalModules = new List<PyModule>();
             _modulesByName = new Dictionary<string, PyModule>();
+            _chatroomModules = new Dictionary<SteamID, List<PyModule>>();
 
             CompileDirectory();
 
@@ -107,6 +111,32 @@ namespace SteamNerd
             return true;
         }
 
+        public void AddModule(PyModule module)
+        {
+            if (module.Global)
+            {
+                _globalModules.Add(module);
+            }
+            else
+            {
+                _localModules.Add(module.Path);
+            }
+            _modulesByName[module.Name] = module;
+        }
+
+        public void AddChatroom(SteamID chatroom)
+        {
+            _chatroomModules[chatroom] = new List<PyModule>();
+
+            foreach (var path in _localModules)
+            {
+                var module = new PyModule(path);
+                module.Chatroom = chatroom;
+                module.Compile(_steamNerd, _pyEngine);
+                _chatroomModules[chatroom].Add(module);
+            }
+        }
+
         /// <summary>
         /// Get a module's properties by it's name.
         /// </summary>
@@ -118,6 +148,12 @@ namespace SteamNerd
                 _modulesByName[moduleName].Variables : null;
         }
 
+        public dynamic GetGlobalModule(string moduleName)
+        {
+            return _modulesByName.ContainsKey(moduleName) ?
+                _modulesByName[moduleName].Variables : null;
+        }
+
         /// <summary>
         /// When a chat message is received, signal the modules. Also checks
         /// against every module's commands.
@@ -126,10 +162,15 @@ namespace SteamNerd
         /// <param name="args"></param>
         public void ChatMessageSent(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            foreach (var module in _modules)
+            // Get both the global modules and the modules specific to that chatroom.
+            var modules = _globalModules.Union(_chatroomModules[callback.ChatRoomID]);
+
+            foreach (var module in modules)
             {
+                // Find the command
                 var command = module.FindCommand(args);
 
+                // If FindCommand returned something, execute it.
                 if (command.HasValue)
                 {
                     try
@@ -143,7 +184,7 @@ namespace SteamNerd
                 }
             }
 
-            foreach (var module in _modules)
+            foreach (var module in modules)
             {
                 module.OnChatMessage(callback, args);
             }
@@ -156,7 +197,15 @@ namespace SteamNerd
         /// <param name="args"></param>
         public void FriendMessageSent(SteamFriends.FriendMsgCallback callback, string[] args)
         {
-            foreach (var module in _modules)
+            var modules = _globalModules;
+
+            // Get all modules
+            foreach (var chatKV in _chatroomModules)
+            {
+                modules.Union(chatKV.Value);
+            }
+
+            foreach (var module in modules)
             {
                 module.OnFriendMessage(callback, args);
             }
@@ -168,7 +217,10 @@ namespace SteamNerd
         /// <param name="callback"></param>
         public void SelfEnteredChat(SteamFriends.ChatEnterCallback callback)
         {
-            foreach (var module in _modules)
+            // Get both the global modules and the modules specific to that chatroom.
+            var modules = _globalModules.Union(_chatroomModules[callback.ChatID]);
+
+            foreach (var module in modules)
             {
                 module.OnSelfChatEnter(callback);
             }
@@ -181,7 +233,10 @@ namespace SteamNerd
         /// <param name="callback"></param>
         public void EnteredChat(SteamFriends.PersonaStateCallback callback)
         {
-            foreach (var module in _modules)
+            // Get both the global modules and the modules specific to that chatroom.
+            var modules = _globalModules.Union(_chatroomModules[callback.SourceSteamID]);
+
+            foreach (var module in modules)
             {
                 module.OnChatEnter(callback);
             }
@@ -193,7 +248,10 @@ namespace SteamNerd
         /// <param name="callback"></param>
         public void LeftChat(SteamFriends.ChatMemberInfoCallback callback)
         {
-            foreach (var module in _modules)
+            // Get both the global modules and the modules specific to that chatroom.
+            var modules = _globalModules.Union(_chatroomModules[callback.ChatRoomID]);
+
+            foreach (var module in modules)
             {
                 module.OnChatLeave(callback);
             }
@@ -215,12 +273,6 @@ namespace SteamNerd
         private void OnDelete(object source, FileSystemEventArgs e)
         {
             Console.WriteLine("{0} deleted.", e.Name);
-        }
-
-        public void AddModule(PyModule module)
-        {
-            _modules.Add(module);
-            _modulesByName[module.Name] = module;
         }
     }
 }
