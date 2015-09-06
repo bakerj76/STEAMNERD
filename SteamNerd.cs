@@ -474,6 +474,11 @@ namespace SteamNerd
             }
         }
 
+        public dynamic GetPyModule(string name)
+        {
+            return _moduleManager.GetModule(name);
+        }
+
         public string GetName(SteamID steamID)
         {
             return ChatterNames.ContainsKey(steamID) ? ChatterNames[steamID] : null;

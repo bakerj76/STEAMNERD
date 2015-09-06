@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SteamKit2;
+using Microsoft.Scripting.Hosting;
 
 namespace SteamNerd
 {
@@ -21,14 +22,15 @@ namespace SteamNerd
         public delegate void JoinChat(SteamFriends.PersonaStateCallback callback);
         public delegate void LeaveChat(SteamFriends.ChatMemberInfoCallback callback);
         
-        public ChatMessage OnChatMessageCallback;
-        public FriendMessage OnFriendMessageCallback;
-        public SelfJoinChat OnSelfChatEnterCallback;
-        public JoinChat OnChatEnterCallback;
-        public LeaveChat OnChatLeaveCallback;
+        private ChatMessage OnChatMessageCallback;
+        private FriendMessage OnFriendMessageCallback;
+        private SelfJoinChat OnSelfChatEnterCallback;
+        private JoinChat OnChatEnterCallback;
+        private LeaveChat OnChatLeaveCallback;
 
         public virtual string Name { get; set; }
         public virtual string Description { get; set; }
+        public virtual bool Global { get; set; }
         public string Path { get; }
         public dynamic Variables { get; set; }
 
@@ -38,6 +40,87 @@ namespace SteamNerd
         {
             Commands = new List<Command>();
             Path = path;
+            Global = false;
+        }
+
+        /// <summary>
+        /// 'Compiles' a Python file and creates a module.
+        /// </summary>
+        /// <param name="file">The path of the Python file.</param>
+        public ScriptScope Compile(SteamNerd steamNerd, ScriptEngine pyEngine)
+        {
+            var scope = pyEngine.CreateScope();
+
+            scope.SetVariable("SteamNerd", steamNerd);
+            scope.SetVariable("Module", this);
+
+            try
+            {
+                // Add a "var" class to get all of the script variables
+                pyEngine.Execute("class var:\n\tpass", scope);
+                pyEngine.ExecuteFile(Path, scope);
+            }
+            catch (Exception e)
+            {
+                ModuleManager.PrintStackFrame(e);
+                return null;
+            }
+
+            GetModuleCallbacks(scope);
+
+            return scope;
+        }
+
+        /// <summary>
+        /// Gets the functions in the python file and assigns the appropriate
+        /// callback to them.
+        /// </summary>
+        /// <param name="module">The module to assign the callbacks</param>
+        /// <param name="scope">The program scope</param>
+        private void GetModuleCallbacks(ScriptScope scope)
+        {
+            Action<SteamFriends.ChatMsgCallback, string[]> onChatMessage;
+            Action<SteamFriends.FriendMsgCallback, string[]> onFriendMessage;
+            Action<SteamFriends.ChatEnterCallback> onSelfEnterChat;
+            Action<SteamFriends.PersonaStateCallback> onEnterChat;
+            Action<SteamFriends.ChatMemberInfoCallback> onLeaveChat;
+
+            try
+            {
+                if (scope.TryGetVariable("OnChatMessage", out onChatMessage))
+                {
+                    OnChatMessageCallback = (callback, args) =>
+                        onChatMessage(callback, args);
+                }
+
+                if (scope.TryGetVariable("OnFriendMessage", out onFriendMessage))
+                {
+                    OnFriendMessageCallback = (callback, args) =>
+                        onFriendMessage(callback, args);
+                }
+
+                if (scope.TryGetVariable("OnSelfChatEnter", out onSelfEnterChat))
+                {
+                    OnSelfChatEnterCallback = (callback) =>
+                        onSelfEnterChat(callback);
+                }
+
+                if (scope.TryGetVariable("OnChatEnter", out onEnterChat))
+                {
+                    OnChatEnterCallback = (callback) =>
+                        onEnterChat(callback);
+                }
+
+                if (scope.TryGetVariable("OnChatLeave", out onLeaveChat))
+                {
+                    OnChatLeaveCallback = (callback) =>
+                        onLeaveChat(callback);
+                }
+            }
+            catch (Exception e)
+            {
+                ModuleManager.PrintStackFrame(e);
+            }
         }
 
         public void AddCommand(string match, string help, CommandCallback callback)

@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SteamKit2;
-
 using Microsoft.Scripting.Hosting;
 using IronPython.Hosting;
 using IronPython.Runtime.Operations;
@@ -55,6 +54,9 @@ namespace SteamNerd
         /// <param name="e">The Python exception</param>
         public static void PrintStackFrame(Exception e)
         {
+            //var eo = pyEngine.GetService<ExceptionOperations>();
+            //Console.WriteLine(eo.FormatException(e));
+
             var pyStackFrame = PythonOps.GetDynamicStackFrames(e);
 
             Console.WriteLine("Traceback (most recent call last):");
@@ -74,93 +76,15 @@ namespace SteamNerd
         {
             foreach (var file in  Directory.EnumerateFiles(ModulesDirectory))
             {
-                CompileFile(file);
-            }
-        }
+                var module = new PyModule(file);
 
-        /// <summary>
-        /// 'Compiles' a Python file and creates a module.
-        /// </summary>
-        /// <param name="file">The path of the Python file.</param>
-        private void CompileFile(string file)
-        {
-            var scope = _pyEngine.CreateScope();
-            var module = new PyModule(file);
+                var scope = module.Compile(_steamNerd, _pyEngine);
 
-            scope.SetVariable("SteamNerd", _steamNerd);
-            scope.SetVariable("Module", module);
-
-            try
-            {
-                // Add a "var" class to get all of the script variables
-                _pyEngine.Execute("class var:\n\tpass", scope);
-                _pyEngine.ExecuteFile(file, scope);
-            }
-            catch (Exception e)
-            {
-                PrintStackFrame(e);
-                return;
-            }
-
-            GetModuleCallbacks(module, scope);
-
-            if (CheckModule(module))
-            {
-                module.Variables = scope.GetVariable("var");
-                _modules.Add(module);
-            }
-        }
-
-        /// <summary>
-        /// Gets the functions in the python file and assigns the appropriate
-        /// callback to them.
-        /// </summary>
-        /// <param name="module">The module to assign the callbacks</param>
-        /// <param name="scope">The program scope</param>
-        private void GetModuleCallbacks(PyModule module, ScriptScope scope)
-        {
-            Action<SteamFriends.ChatMsgCallback, string[]> onChatMessage;
-            Action<SteamFriends.FriendMsgCallback, string[]> onFriendMessage;
-            Action<SteamFriends.ChatEnterCallback> onSelfEnterChat;
-            Action<SteamFriends.PersonaStateCallback> onEnterChat;
-            Action<SteamFriends.ChatMemberInfoCallback> onLeaveChat;
-
-            if (scope.TryGetVariable("OnChatMessage", out onChatMessage))
-            {
-                module.OnChatMessageCallback = (callback, args) =>
-                    onChatMessage(callback, args);
-            }
-
-            if (scope.TryGetVariable("OnFriendMessage", out onFriendMessage))
-            {
-                module.OnFriendMessageCallback = (callback, args) =>
-                    onFriendMessage(callback, args);
-            }
-
-            if (scope.TryGetVariable("OnSelfChatEnter", out onSelfEnterChat))
-            {
-                try
+                if (scope != null && CheckModule(module))
                 {
-                    module.OnSelfChatEnterCallback = (callback) =>
-                        onSelfEnterChat(callback);
+                    module.Variables = scope.GetVariable("var");
+                    AddModule(module);
                 }
-                catch (Exception e)
-                {
-                    PrintStackFrame(e);
-                }
-
-            }
-
-            if (scope.TryGetVariable("OnChatEnter", out onEnterChat))
-            {
-                module.OnChatEnterCallback = (callback) =>
-                    onEnterChat(callback);
-            }
-
-            if (scope.TryGetVariable("OnChatLeave", out onLeaveChat))
-            {
-                module.OnChatLeaveCallback = (callback) =>
-                    onLeaveChat(callback);
             }
         }
 
@@ -208,7 +132,14 @@ namespace SteamNerd
 
                 if (command.HasValue)
                 {
-                    command.Value.Callback(callback, args);
+                    try
+                    {
+                        command.Value.Callback(callback, args);
+                    }
+                    catch (Exception e)
+                    {
+                        PrintStackFrame(e);
+                    }
                 }
             }
 
@@ -270,12 +201,26 @@ namespace SteamNerd
 
         private void OnChanged(object source, FileSystemEventArgs e)
         {
-            Console.WriteLine("{0} changed or created.", e.Name);
+            Console.WriteLine("{0} changed.", e.Name);
+
+            //foreach (var module in _modules)
+            //{
+            //    if (module.Path == e.FullPath)
+            //    {
+            //        module.Compile(_steamNerd, _pyEngine);
+            //    }
+            //}
         }
 
         private void OnDelete(object source, FileSystemEventArgs e)
         {
             Console.WriteLine("{0} deleted.", e.Name);
+        }
+
+        public void AddModule(PyModule module)
+        {
+            _modules.Add(module);
+            _modulesByName[module.Name] = module;
         }
     }
 }
