@@ -282,7 +282,10 @@ namespace SteamNerd
 
         private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
         {
+            if (callback.EntryType != EChatEntryType.ChatMsg)
+            
             _moduleManager.FriendMessageSent(callback, MessageToArgs(callback.Message));
+            
         }
 
         private void OnChatMemberInfo(SteamFriends.ChatMemberInfoCallback callback)

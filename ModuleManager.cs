@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 using SteamKit2;
 using Microsoft.Scripting.Hosting;
 using IronPython.Hosting;
@@ -187,7 +185,8 @@ namespace SteamNerd
         public void ChatMessageSent(SteamFriends.ChatMsgCallback callback, string[] args)
         {
             // Get both the global modules and the modules specific to that chatroom.
-            var modules = _globalModules.Values.Union(_chatroomModules[callback.ChatRoomID].Values);
+            var modules = _globalModules.Values.ToList();
+            modules.AddRange(_chatroomModules[callback.ChatRoomID].Values);
 
             foreach (var module in modules)
             {
@@ -293,36 +292,32 @@ namespace SteamNerd
 
             var modules = _globalModules.Values.ToList();
 
-            // Get all modules
-            foreach (var chatKV in _chatroomModules)
-            {                
-                modules.AddRange(chatKV.Value.Values);
-            }
+            // Sleep to avoid reading while text editor is writing.
+            Thread.Sleep(100);
 
-            foreach (var module in modules)
-            {
-                if (module.Path == e.FullPath)
-                {
-                    module.Interpret(_steamNerd, _pyEngine);
-                }
-            }
+            RemoveModule(e.FullPath);
+            CreateModule(e.FullPath);
         }
 
         private void OnDelete(object source, FileSystemEventArgs e)
         {
             Console.WriteLine("{0} deleted.", e.Name);
+            RemoveModule(e.FullPath);
+        }
 
+        private void RemoveModule(string path)
+        {
             // Remove from global modules.
             var globalRemoval = new List<string>();
 
             foreach (var module in _globalModules.Values)
             {
-                if (module.Path == e.FullPath)
+                if (module.Path == path)
                 {
                     globalRemoval.Add(module.Name);
                 }
             }
-            
+
             foreach (var name in globalRemoval)
             {
                 _globalModules.Remove(name);
@@ -330,14 +325,14 @@ namespace SteamNerd
 
 
             // Remove from local modules.
-            var localRemoval = new List<string>(); 
+            var localRemoval = new List<string>();
 
             foreach (var chatKV in _chatroomModules)
             {
                 // Get the dictionary of modules in this chat
                 foreach (var moduleKV in chatKV.Value)
                 {
-                    if (moduleKV.Value.Path == e.FullPath)
+                    if (moduleKV.Value.Path == path)
                     {
                         localRemoval.Add(moduleKV.Value.Name);
                     }

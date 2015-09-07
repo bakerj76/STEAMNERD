@@ -17,11 +17,11 @@ namespace SteamNerd
 
         public delegate void CommandCallback(SteamFriends.ChatMsgCallback callback, string[] args);
         
-        private event Action<SteamFriends.ChatMsgCallback, string[]> ChatMessage;
-        private event Action<SteamFriends.FriendMsgCallback, string[]> FriendMessage;
-        private event Action<SteamFriends.ChatEnterCallback> SelfChatEnterCallback;
-        private event Action<SteamFriends.PersonaStateCallback> ChatEnterCallback;
-        private event Action<SteamFriends.ChatMemberInfoCallback> ChatLeaveCallback;
+        private Action<SteamFriends.ChatMsgCallback, string[]> ChatMessage;
+        private Action<SteamFriends.FriendMsgCallback, string[]> FriendMessage;
+        private Action<SteamFriends.ChatEnterCallback> SelfChatEnterCallback;
+        private Action<SteamFriends.PersonaStateCallback> ChatEnterCallback;
+        private Action<SteamFriends.ChatMemberInfoCallback> ChatLeaveCallback;
 
         protected List<Command> Commands;
 
@@ -75,9 +75,11 @@ namespace SteamNerd
                 // Add a "var" class to get all of the script variables.
                 // And add a way to reference SteamKit2.
                 pyEngine.Execute(
-                    "import sys\n" +
-                    "sys.path.append(r'" + Directory.GetCurrentDirectory() + "')\n" +
+                    "from System import Environment\n" +
                     "import clr\n" +
+                    "import sys\n" +
+                    "sys.path.append(Environment.GetEnvironmentVariable('IRONPYTHONPATH'))\n" +
+                    "sys.path.append(r'" + Directory.GetCurrentDirectory() + "')\n" +
                     "clr.AddReference('SteamKit2.dll')\n" +
                     "class var:\n" +
                     "   pass", 
@@ -213,7 +215,14 @@ namespace SteamNerd
         {
             if (ChatMessage != null)
             {
-                ChatMessage(callback, args);
+                try
+                {
+                    ChatMessage(callback, args);
+                }
+                catch (Exception e)
+                {
+                    ModuleManager.PrintStackFrame(e);
+                }
             }
         }
 
@@ -221,7 +230,14 @@ namespace SteamNerd
         {
             if (FriendMessage != null)
             {
-                FriendMessage(callback, args);
+                try
+                {
+                    FriendMessage(callback, args);
+                }
+                    catch (Exception e)
+                {
+                    ModuleManager.PrintStackFrame(e);
+                }
             }
         }
 
@@ -229,7 +245,14 @@ namespace SteamNerd
         {
             if (SelfChatEnterCallback != null)
             {
-                SelfChatEnterCallback(callback);
+                try
+                { 
+                    SelfChatEnterCallback(callback);
+                }
+                catch (Exception e)
+                {
+                    ModuleManager.PrintStackFrame(e);
+                }
             }
         }
 
@@ -237,7 +260,14 @@ namespace SteamNerd
         {
             if (ChatEnterCallback != null)
             {
-                ChatEnterCallback(callback);
+                try
+                {
+                    ChatEnterCallback(callback);
+                }
+                catch (Exception e)
+                {
+                    ModuleManager.PrintStackFrame(e);
+                }
             }
         }
 
@@ -245,7 +275,14 @@ namespace SteamNerd
         {
             if (ChatLeaveCallback != null)
             {
-                ChatLeaveCallback(callback);
+                try
+                { 
+                    ChatLeaveCallback(callback);
+                }
+                catch (Exception e)
+                {
+                    ModuleManager.PrintStackFrame(e);
+                }
             }
         }
     }
