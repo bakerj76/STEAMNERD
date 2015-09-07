@@ -22,19 +22,17 @@ namespace SteamNerd
         private FileSystemWatcher _watcher;
         private ScriptEngine _pyEngine;
 
-        private List<string> _localModules;
-        private List<PyModule> _globalModules;
-        private Dictionary<string, PyModule> _modulesByName;
-        private Dictionary<SteamID, List<PyModule>> _chatroomModules;
+        private List<string> _localModulePaths;
+        private Dictionary<string, PyModule> _globalModules;
+        private Dictionary<SteamID, Dictionary<string, PyModule>> _chatroomModules;
 
         public ModuleManager(SteamNerd steamNerd)
         {
             _steamNerd = steamNerd;
             _pyEngine = Python.CreateEngine();
-            _localModules = new List<string>();
-            _globalModules = new List<PyModule>();
-            _modulesByName = new Dictionary<string, PyModule>();
-            _chatroomModules = new Dictionary<SteamID, List<PyModule>>();
+            _localModulePaths = new List<string>();
+            _globalModules = new Dictionary<string, PyModule>();
+            _chatroomModules = new Dictionary<SteamID, Dictionary<string, PyModule>>();
 
             CompileDirectory();
 
@@ -58,9 +56,6 @@ namespace SteamNerd
         /// <param name="e">The Python exception</param>
         public static void PrintStackFrame(Exception e)
         {
-            //var eo = pyEngine.GetService<ExceptionOperations>();
-            //Console.WriteLine(eo.FormatException(e));
-
             var pyStackFrame = PythonOps.GetDynamicStackFrames(e);
 
             Console.WriteLine("Traceback (most recent call last):");
@@ -78,7 +73,7 @@ namespace SteamNerd
         /// </summary>
         private void CompileDirectory()
         {
-            foreach (var file in  Directory.EnumerateFiles(ModulesDirectory))
+            foreach (var file in  Directory.EnumerateFiles(ModulesDirectory, "*.py"))
             {
                 var module = new PyModule(file);
 
@@ -115,43 +110,57 @@ namespace SteamNerd
         {
             if (module.Global)
             {
-                _globalModules.Add(module);
+                _globalModules[module.Name] = module;
             }
             else
             {
-                _localModules.Add(module.Path);
+                _localModulePaths.Add(module.Path);
             }
-            _modulesByName[module.Name] = module;
         }
 
         public void AddChatroom(SteamID chatroom)
         {
-            _chatroomModules[chatroom] = new List<PyModule>();
+            _chatroomModules[chatroom] = new Dictionary<string, PyModule>();
 
-            foreach (var path in _localModules)
+            foreach (var path in _localModulePaths)
             {
                 var module = new PyModule(path);
                 module.Chatroom = chatroom;
                 module.Compile(_steamNerd, _pyEngine);
-                _chatroomModules[chatroom].Add(module);
+                _chatroomModules[chatroom][module.Name] = module;
             }
         }
 
         /// <summary>
-        /// Get a module's properties by it's name.
+        /// Get a module's properties by it's name and chatroom.
         /// </summary>
         /// <param name="moduleName"></param>
+        /// <param name="chatroom">
+        /// The chatroom where the instance of the module exists. If it's null, 
+        /// it searches the global modules.
+        /// </param>
         /// <returns></returns>
-        public dynamic GetModule(string moduleName)
+        public dynamic GetModule(string moduleName, SteamID chatroom = null)
         {
-            return _modulesByName.ContainsKey(moduleName) ? 
-                _modulesByName[moduleName].Variables : null;
-        }
+            if (chatroom == null)
+            {
+                if (_globalModules.ContainsKey(moduleName))
+                {
+                    return _globalModules[moduleName];
+                }
+            }
+            else
+            {
+                if (_chatroomModules.ContainsKey(chatroom))
+                {
+                    if (_chatroomModules[chatroom].ContainsKey(moduleName))
+                    {
+                        return _chatroomModules[chatroom][moduleName];
+                    }
+                }
+            }
 
-        public dynamic GetGlobalModule(string moduleName)
-        {
-            return _modulesByName.ContainsKey(moduleName) ?
-                _modulesByName[moduleName].Variables : null;
+            return null;
         }
 
         /// <summary>
@@ -163,7 +172,7 @@ namespace SteamNerd
         public void ChatMessageSent(SteamFriends.ChatMsgCallback callback, string[] args)
         {
             // Get both the global modules and the modules specific to that chatroom.
-            var modules = _globalModules.Union(_chatroomModules[callback.ChatRoomID]);
+            var modules = _globalModules.Values.Union(_chatroomModules[callback.ChatRoomID].Values);
 
             foreach (var module in modules)
             {
@@ -197,12 +206,12 @@ namespace SteamNerd
         /// <param name="args"></param>
         public void FriendMessageSent(SteamFriends.FriendMsgCallback callback, string[] args)
         {
-            var modules = _globalModules;
+            var modules = _globalModules.Values;
 
             // Get all modules
             foreach (var chatKV in _chatroomModules)
             {
-                modules.Union(chatKV.Value);
+                modules.Union(chatKV.Value.Values);
             }
 
             foreach (var module in modules)
@@ -218,7 +227,7 @@ namespace SteamNerd
         public void SelfEnteredChat(SteamFriends.ChatEnterCallback callback)
         {
             // Get both the global modules and the modules specific to that chatroom.
-            var modules = _globalModules.Union(_chatroomModules[callback.ChatID]);
+            var modules = _globalModules.Values.Union(_chatroomModules[callback.ChatID].Values);
 
             foreach (var module in modules)
             {
@@ -234,7 +243,7 @@ namespace SteamNerd
         public void EnteredChat(SteamFriends.PersonaStateCallback callback)
         {
             // Get both the global modules and the modules specific to that chatroom.
-            var modules = _globalModules.Union(_chatroomModules[callback.SourceSteamID]);
+            var modules = _globalModules.Values.Union(_chatroomModules[callback.SourceSteamID].Values);
 
             foreach (var module in modules)
             {
@@ -249,7 +258,7 @@ namespace SteamNerd
         public void LeftChat(SteamFriends.ChatMemberInfoCallback callback)
         {
             // Get both the global modules and the modules specific to that chatroom.
-            var modules = _globalModules.Union(_chatroomModules[callback.ChatRoomID]);
+            var modules = _globalModules.Values.Union(_chatroomModules[callback.ChatRoomID].Values);
 
             foreach (var module in modules)
             {

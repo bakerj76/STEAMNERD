@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using SteamKit2;
 using Microsoft.Scripting.Hosting;
 
@@ -76,8 +76,17 @@ namespace SteamNerd
 
             try
             {
-                // Add a "var" class to get all of the script variables
-                pyEngine.Execute("class var:\n\tpass", scope);
+                // Add a "var" class to get all of the script variables.
+                // And add a way to reference SteamKit2.
+                pyEngine.Execute(
+                    "import sys\n" +
+                    "sys.path.append(r'" + Directory.GetCurrentDirectory() + "')\n" +
+                    "import clr\n" +
+                    "clr.AddReference('SteamKit2.dll')\n" +
+                    "class var:\n" +
+                    "   pass", 
+                    scope
+                );
                 pyEngine.ExecuteFile(Path, scope);
             }
             catch (Exception e)
