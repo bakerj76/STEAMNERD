@@ -275,10 +275,8 @@ namespace SteamNerd
                 return;
             }
 
-            Console.WriteLine("Adding {0}", name);
-            ChatterNames.Add(friendID, name);
             AddChatroom(callback.SourceSteamID, null);
-            Chatrooms[callback.SourceSteamID].Chatters.Add(friendID);
+            AddChatter(friendID, callback.SourceSteamID, name);
             _moduleManager.EnteredChat(callback);
         }
 
@@ -413,6 +411,13 @@ namespace SteamNerd
                 Chatrooms[chatroom] = new Chatroom(name);
                 _moduleManager.AddChatroom(chatroom);
             }
+        }
+
+        public void AddChatter(SteamID chatterID, SteamID chatID, string name)
+        {
+            Console.WriteLine("Adding {0}", name);
+            ChatterNames.Add(chatterID, name);
+            Chatrooms[chatID].Chatters.Add(chatterID);
         }
     }
 }

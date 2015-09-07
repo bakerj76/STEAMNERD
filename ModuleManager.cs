@@ -34,7 +34,7 @@ namespace SteamNerd
             _globalModules = new Dictionary<string, PyModule>();
             _chatroomModules = new Dictionary<SteamID, Dictionary<string, PyModule>>();
 
-            CompileDirectory();
+            InterpretDirectory();
 
             _watcher = new FileSystemWatcher(ModulesDirectory);
             _watcher.Filter = "*.py";
@@ -43,8 +43,8 @@ namespace SteamNerd
                 NotifyFilters.FileName | 
                 NotifyFilters.DirectoryName;
 
+            _watcher.Created += OnCreated;
             _watcher.Changed += OnChanged;
-            _watcher.Created += OnChanged;
             _watcher.Deleted += OnDelete;
 
             _watcher.EnableRaisingEvents = true;
@@ -69,21 +69,26 @@ namespace SteamNerd
         }
 
         /// <summary>
-        /// 'Compiles' all of the modules in the directory.
+        /// Interpret all of the modules in the directory.
         /// </summary>
-        private void CompileDirectory()
+        private void InterpretDirectory()
         {
             foreach (var file in  Directory.EnumerateFiles(ModulesDirectory, "*.py"))
             {
-                var module = new PyModule(file);
+                CreateModule(file);
+            }
+        }
 
-                var scope = module.Compile(_steamNerd, _pyEngine);
+        private void CreateModule(string file)
+        {
+            var module = new PyModule(file);
 
-                if (scope != null && CheckModule(module))
-                {
-                    module.Variables = scope.GetVariable("var");
-                    AddModule(module);
-                }
+            var scope = module.Interpret(_steamNerd, _pyEngine);
+
+            if (scope != null && CheckModule(module))
+            {
+                module.Variables = scope.GetVariable("var");
+                AddModule(module);
             }
         }
 
@@ -115,6 +120,11 @@ namespace SteamNerd
             else
             {
                 _localModulePaths.Add(module.Path);
+
+                foreach (var chatroom in _chatroomModules.Keys)
+                {
+                    AddModuleToChatroom(module.Path, chatroom);
+                }
             }
         }
 
@@ -124,11 +134,16 @@ namespace SteamNerd
 
             foreach (var path in _localModulePaths)
             {
-                var module = new PyModule(path);
-                module.Chatroom = chatroom;
-                module.Compile(_steamNerd, _pyEngine);
-                _chatroomModules[chatroom][module.Name] = module;
+                AddModuleToChatroom(path, chatroom);
             }
+        }
+
+        private void AddModuleToChatroom(string path, SteamID chatroom)
+        {
+            var module = new PyModule(path);
+            module.Chatroom = chatroom;
+            module.Interpret(_steamNerd, _pyEngine);
+            _chatroomModules[chatroom][module.Name] = module;
         }
 
         /// <summary>
@@ -206,12 +221,12 @@ namespace SteamNerd
         /// <param name="args"></param>
         public void FriendMessageSent(SteamFriends.FriendMsgCallback callback, string[] args)
         {
-            var modules = _globalModules.Values;
+            var modules = _globalModules.Values.ToList();
 
             // Get all modules
             foreach (var chatKV in _chatroomModules)
             {
-                modules.Union(chatKV.Value.Values);
+                modules.AddRange(chatKV.Value.Values);
             }
 
             foreach (var module in modules)
@@ -266,22 +281,76 @@ namespace SteamNerd
             }
         }
 
+        private void OnCreated(object source, FileSystemEventArgs e)
+        {
+            Console.WriteLine("{0} created.", e.Name);
+            CreateModule(e.FullPath);
+        }
+
         private void OnChanged(object source, FileSystemEventArgs e)
         {
             Console.WriteLine("{0} changed.", e.Name);
 
-            //foreach (var module in _modules)
-            //{
-            //    if (module.Path == e.FullPath)
-            //    {
-            //        module.Compile(_steamNerd, _pyEngine);
-            //    }
-            //}
+            var modules = _globalModules.Values.ToList();
+
+            // Get all modules
+            foreach (var chatKV in _chatroomModules)
+            {                
+                modules.AddRange(chatKV.Value.Values);
+            }
+
+            foreach (var module in modules)
+            {
+                if (module.Path == e.FullPath)
+                {
+                    module.Interpret(_steamNerd, _pyEngine);
+                }
+            }
         }
 
         private void OnDelete(object source, FileSystemEventArgs e)
         {
             Console.WriteLine("{0} deleted.", e.Name);
+
+            // Remove from global modules.
+            var globalRemoval = new List<string>();
+
+            foreach (var module in _globalModules.Values)
+            {
+                if (module.Path == e.FullPath)
+                {
+                    globalRemoval.Add(module.Name);
+                }
+            }
+            
+            foreach (var name in globalRemoval)
+            {
+                _globalModules.Remove(name);
+            }
+
+
+            // Remove from local modules.
+            var localRemoval = new List<string>(); 
+
+            foreach (var chatKV in _chatroomModules)
+            {
+                // Get the dictionary of modules in this chat
+                foreach (var moduleKV in chatKV.Value)
+                {
+                    if (moduleKV.Value.Path == e.FullPath)
+                    {
+                        localRemoval.Add(moduleKV.Value.Name);
+                    }
+                }
+            }
+
+            foreach (var chatKV in _chatroomModules)
+            {
+                foreach (var name in localRemoval)
+                {
+                    chatKV.Value.Remove(name);
+                }
+            }
         }
     }
 }

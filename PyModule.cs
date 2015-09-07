@@ -16,17 +16,12 @@ namespace SteamNerd
         }
 
         public delegate void CommandCallback(SteamFriends.ChatMsgCallback callback, string[] args);
-        public delegate void ChatMessage(SteamFriends.ChatMsgCallback callback, string[] args);
-        public delegate void FriendMessage(SteamFriends.FriendMsgCallback callback, string[] args);
-        public delegate void SelfJoinChat(SteamFriends.ChatEnterCallback callback);
-        public delegate void JoinChat(SteamFriends.PersonaStateCallback callback);
-        public delegate void LeaveChat(SteamFriends.ChatMemberInfoCallback callback);
         
-        private ChatMessage OnChatMessageCallback;
-        private FriendMessage OnFriendMessageCallback;
-        private SelfJoinChat OnSelfChatEnterCallback;
-        private JoinChat OnChatEnterCallback;
-        private LeaveChat OnChatLeaveCallback;
+        private event Action<SteamFriends.ChatMsgCallback, string[]> ChatMessage;
+        private event Action<SteamFriends.FriendMsgCallback, string[]> FriendMessage;
+        private event Action<SteamFriends.ChatEnterCallback> SelfChatEnterCallback;
+        private event Action<SteamFriends.PersonaStateCallback> ChatEnterCallback;
+        private event Action<SteamFriends.ChatMemberInfoCallback> ChatLeaveCallback;
 
         protected List<Command> Commands;
 
@@ -64,11 +59,12 @@ namespace SteamNerd
         }
 
         /// <summary>
-        /// 'Compiles' a Python file and creates a module.
+        /// Interprets a Python file and creates a module.
         /// </summary>
         /// <param name="file">The path of the Python file.</param>
-        public ScriptScope Compile(SteamNerd steamNerd, ScriptEngine pyEngine)
+        public ScriptScope Interpret(SteamNerd steamNerd, ScriptEngine pyEngine)
         {
+            Commands.Clear();
             var scope = pyEngine.CreateScope();
 
             scope.SetVariable("SteamNerd", steamNerd);
@@ -95,7 +91,7 @@ namespace SteamNerd
                 return null;
             }
 
-            GetModuleCallbacks(scope);
+            SetModuleCallbacks(scope);
 
             return scope;
         }
@@ -106,7 +102,7 @@ namespace SteamNerd
         /// </summary>
         /// <param name="module">The module to assign the callbacks</param>
         /// <param name="scope">The program scope</param>
-        private void GetModuleCallbacks(ScriptScope scope)
+        private void SetModuleCallbacks(ScriptScope scope)
         {
             Action<SteamFriends.ChatMsgCallback, string[]> onChatMessage;
             Action<SteamFriends.FriendMsgCallback, string[]> onFriendMessage;
@@ -118,32 +114,27 @@ namespace SteamNerd
             {
                 if (scope.TryGetVariable("OnChatMessage", out onChatMessage))
                 {
-                    OnChatMessageCallback = (callback, args) =>
-                        onChatMessage(callback, args);
+                    ChatMessage = onChatMessage;
                 }
 
                 if (scope.TryGetVariable("OnFriendMessage", out onFriendMessage))
                 {
-                    OnFriendMessageCallback = (callback, args) =>
-                        onFriendMessage(callback, args);
+                    FriendMessage = onFriendMessage;
                 }
 
                 if (scope.TryGetVariable("OnSelfChatEnter", out onSelfEnterChat))
                 {
-                    OnSelfChatEnterCallback = (callback) =>
-                        onSelfEnterChat(callback);
+                    SelfChatEnterCallback = onSelfEnterChat;
                 }
 
                 if (scope.TryGetVariable("OnChatEnter", out onEnterChat))
                 {
-                    OnChatEnterCallback = (callback) =>
-                        onEnterChat(callback);
+                    ChatEnterCallback = onEnterChat;
                 }
 
                 if (scope.TryGetVariable("OnChatLeave", out onLeaveChat))
                 {
-                    OnChatLeaveCallback = (callback) =>
-                        onLeaveChat(callback);
+                    ChatLeaveCallback = onLeaveChat;
                 }
             }
             catch (Exception e)
@@ -220,41 +211,41 @@ namespace SteamNerd
 
         public void OnChatMessage(SteamFriends.ChatMsgCallback callback, string[] args)
         {
-            if (OnChatMessageCallback != null)
+            if (ChatMessage != null)
             {
-                OnChatMessageCallback(callback, args);
+                ChatMessage(callback, args);
             }
         }
 
         public void OnFriendMessage(SteamFriends.FriendMsgCallback callback, string[] args)
         {
-            if (OnFriendMessageCallback != null)
+            if (FriendMessage != null)
             {
-                OnFriendMessageCallback(callback, args);
+                FriendMessage(callback, args);
             }
         }
 
         public void OnSelfChatEnter(SteamFriends.ChatEnterCallback callback)
         {
-            if (OnSelfChatEnterCallback != null)
+            if (SelfChatEnterCallback != null)
             {
-                OnSelfChatEnterCallback(callback);
+                SelfChatEnterCallback(callback);
             }
         }
 
         public void OnChatEnter(SteamFriends.PersonaStateCallback callback)
         {
-            if (OnChatEnterCallback != null)
+            if (ChatEnterCallback != null)
             {
-                OnChatEnterCallback(callback);
+                ChatEnterCallback(callback);
             }
         }
 
         public void OnChatLeave(SteamFriends.ChatMemberInfoCallback callback)
         {
-            if (OnChatLeaveCallback != null)
+            if (ChatLeaveCallback != null)
             {
-                OnChatLeaveCallback(callback);
+                ChatLeaveCallback(callback);
             }
         }
     }
