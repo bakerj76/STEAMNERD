@@ -9,5 +9,5 @@ var.greetings = ('selamat pagi', 'ling t', 'selamat malam')
 def OnChatMessage(callback, args):
 	message = callback.Message.lower()
 	
-	if message.find('ling') > -1 and message.find('t') > -1:
+	if message.find('ling') >= 0 and message.find('t') >= 0:
 		SteamNerd.SendMessage(random.choice(var.greetings), callback.ChatRoomID)

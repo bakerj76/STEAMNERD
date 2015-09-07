@@ -23,7 +23,7 @@ namespace SteamNerd
         public readonly SteamUser SteamUser;
         private readonly SteamClient _steamClient;
         private readonly CallbackManager _manager;
-        private ModuleManager _moduleManager;
+        public ModuleManager ModuleManager;
 
         private readonly string _user;
         private string _password;
@@ -32,6 +32,7 @@ namespace SteamNerd
 
         public class Chatroom
         {
+            public SteamID SteamID;
             public string Name { get; set; }
             public List<SteamID> Chatters { get; private set; }
 
@@ -49,7 +50,7 @@ namespace SteamNerd
 
             _steamClient = new SteamClient();
             _manager = new CallbackManager(_steamClient);
-            _moduleManager = new ModuleManager(this);
+            ModuleManager = new ModuleManager(this);
 
             SteamUser = _steamClient.GetHandler<SteamUser>();
             SteamFriends = _steamClient.GetHandler<SteamFriends>();
@@ -277,14 +278,14 @@ namespace SteamNerd
 
             AddChatroom(callback.SourceSteamID, null);
             AddChatter(friendID, callback.SourceSteamID, name);
-            _moduleManager.EnteredChat(callback);
+            ModuleManager.EnteredChat(callback);
         }
 
         private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
         {
             if (callback.EntryType != EChatEntryType.ChatMsg)
             
-            _moduleManager.FriendMessageSent(callback, MessageToArgs(callback.Message));
+            ModuleManager.FriendMessageSent(callback, MessageToArgs(callback.Message));
             
         }
 
@@ -304,7 +305,7 @@ namespace SteamNerd
                 case EChatMemberStateChange.Kicked:
                 case EChatMemberStateChange.Left:
                     Console.WriteLine("Removing {0} from {1}", ChatterNames[chatterID], Chatrooms[chatRoomID].Name);
-                    _moduleManager.LeftChat(callback);
+                    ModuleManager.LeftChat(callback);
                     ChatterNames.Remove(chatterID);
                     Chatrooms[chatRoomID].Chatters.Remove(chatterID);
                     break;
@@ -316,7 +317,7 @@ namespace SteamNerd
             if (callback.ChatMsgType != EChatEntryType.ChatMsg) return;
 
             var args = MessageToArgs(callback.Message);
-            _moduleManager.ChatMessageSent(callback, args);
+            ModuleManager.ChatMessageSent(callback, args);
         }
 
         private static string[] MessageToArgs(string message)
@@ -355,7 +356,7 @@ namespace SteamNerd
 
             AddChatroom(callback.ChatID, callback.ChatRoomName);
             Console.WriteLine("Joined chat.");
-            _moduleManager.SelfEnteredChat(callback);
+            ModuleManager.SelfEnteredChat(callback);
         }
 
         private void OnFriendsList(SteamFriends.FriendsListCallback callback)
@@ -390,11 +391,6 @@ namespace SteamNerd
             }
         }
 
-        public dynamic GetModule(string name)
-        {
-            return _moduleManager.GetModule(name);
-        }
-
         public string GetName(SteamID steamID)
         {
             return ChatterNames.ContainsKey(steamID) ? ChatterNames[steamID] : null;
@@ -412,7 +408,7 @@ namespace SteamNerd
             else
             {
                 Chatrooms[chatroom] = new Chatroom(name);
-                _moduleManager.AddChatroom(chatroom);
+                ModuleManager.AddChatroom(chatroom);
             }
         }
 
@@ -421,6 +417,16 @@ namespace SteamNerd
             Console.WriteLine("Adding {0}", name);
             ChatterNames.Add(chatterID, name);
             Chatrooms[chatID].Chatters.Add(chatterID);
+        }
+
+        public dynamic[] GetModules(SteamID chatroomID = null)
+        {
+            return ModuleManager.GetModules(chatroomID);
+        }
+
+        public dynamic GetModule(string moduleName, SteamID chatroomID = null)
+        {
+            return ModuleManager.GetModule(moduleName, chatroomID);
         }
     }
 }

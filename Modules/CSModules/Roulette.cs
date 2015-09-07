@@ -57,7 +57,7 @@ namespace SteamNerd.Modules
                 Spin
             );
 
-            _moneyModule = (Money)SteamNerd.GetModule("Money");
+            //_moneyModule = (Money)SteamNerd.GetModule("Money");
             _rand = new Random();
             Reset();
             _countdown = new Timer[3];

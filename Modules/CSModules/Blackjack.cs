@@ -181,7 +181,7 @@ namespace SteamNerd.Modules
                 null
             );
 
-            _moneyModule = (Money)SteamNerd.GetModule("Money");
+            //_moneyModule = (Money)SteamNerd.GetModule("Money");
             _rand = new Random();
             _waiting = new List<SteamID>();
             _players = new Dictionary<SteamID, Player>();

@@ -8,7 +8,7 @@ def OnChatMessage(callback, args):
     mingag = SteamKit2.SteamID("STEAM_0:0:5153026")
     message = callback.Message
 
-    if message.lower().find('mingag') > -1:
+    if message.lower().find('mingag') >= 0:
         print "Messaging Mingag."
         SteamNerd.SendMessage(
             str.format('{}: {}', SteamNerd.GetName(callback.ChatterID), message), 

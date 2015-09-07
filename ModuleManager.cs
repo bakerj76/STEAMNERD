@@ -10,7 +10,7 @@ using IronPython.Runtime.Operations;
 
 namespace SteamNerd
 {
-    class ModuleManager
+    public class ModuleManager
     {
         public static string ModulesDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -79,13 +79,12 @@ namespace SteamNerd
 
         private void CreateModule(string file)
         {
-            var module = new PyModule(file);
+            var module = new PyModule(_steamNerd, file);
 
             var scope = module.Interpret(_steamNerd, _pyEngine);
 
             if (scope != null && CheckModule(module))
-            {
-                module.Variables = scope.GetVariable("var");
+            {  
                 AddModule(module);
             }
         }
@@ -138,7 +137,7 @@ namespace SteamNerd
 
         private void AddModuleToChatroom(string path, SteamID chatroom)
         {
-            var module = new PyModule(path);
+            var module = new PyModule(_steamNerd, path);
             module.Chatroom = chatroom;
             module.Interpret(_steamNerd, _pyEngine);
             _chatroomModules[chatroom][module.Name] = module;
@@ -155,14 +154,14 @@ namespace SteamNerd
         /// <returns></returns>
         public dynamic GetModule(string moduleName, SteamID chatroom = null)
         {
-            if (chatroom == null)
+            // Find in globals.
+            if (_globalModules.ContainsKey(moduleName))
             {
-                if (_globalModules.ContainsKey(moduleName))
-                {
-                    return _globalModules[moduleName];
-                }
+                return _globalModules[moduleName];
             }
-            else
+
+            // Find in locals.
+            if (chatroom != null)
             {
                 if (_chatroomModules.ContainsKey(chatroom))
                 {
@@ -174,6 +173,18 @@ namespace SteamNerd
             }
 
             return null;
+        }
+
+        public dynamic[] GetModules(SteamID chatroom = null)
+        {
+            var modules = _globalModules.Select(moduleKV => moduleKV.Value.Variables).ToList();
+
+            if (chatroom != null && _chatroomModules.ContainsKey(chatroom))
+            {
+                modules.AddRange(_chatroomModules[chatroom].Select(moduleKV => moduleKV.Value.Variables));
+            }
+
+            return modules.ToArray();
         }
 
         /// <summary>

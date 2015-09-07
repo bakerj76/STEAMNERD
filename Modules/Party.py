@@ -1,7 +1,7 @@
-Module.Name = "Party"
+﻿Module.Name = "Party"
 Module.Description = "Let's party~"
 
-def lets_party(callback, args):
+def LetsParty(callback, args):
 	friends = SteamNerd.SteamFriends
 	count = 0
 
@@ -12,9 +12,6 @@ def lets_party(callback, args):
 			friends.InviteUserToChat(friend, Module.Chatroom)
 			count += 1
 	
-	SteamNerd.SendMessage(
-		str.format('INVITING {} IDIOTS TO THE CHAT', count),
-		Module.Chatroom
-	)
+	Say('INVITING {} IDIOTS TO THE CHAT'.format(count))
 	
-Module.AddCommand("party", "Invites everyone for a party.", lets_party)
+Module.AddCommand("party", "Invites everyone for a party.", LetsParty)

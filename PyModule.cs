@@ -16,15 +16,17 @@ namespace SteamNerd
         }
 
         public delegate void CommandCallback(SteamFriends.ChatMsgCallback callback, string[] args);
-        
+        public delegate void SayCallback(string message, SteamID receiver = null);
+
         private Action<SteamFriends.ChatMsgCallback, string[]> ChatMessage;
         private Action<SteamFriends.FriendMsgCallback, string[]> FriendMessage;
         private Action<SteamFriends.ChatEnterCallback> SelfChatEnterCallback;
         private Action<SteamFriends.PersonaStateCallback> ChatEnterCallback;
         private Action<SteamFriends.ChatMemberInfoCallback> ChatLeaveCallback;
 
-        protected List<Command> Commands;
+        protected SteamNerd SteamNerd;
 
+        public List<Command> Commands;
         public virtual string Name { get; set; }
         public virtual string Description { get; set; }
         public virtual bool Global { get; set; }
@@ -38,7 +40,7 @@ namespace SteamNerd
             {
                 if (Global)
                 {
-                    throw new MemberAccessException("Module is global and doesn't have a chatroom");
+                    throw new MemberAccessException("Module is global and does not have a chatroom");
                 }
 
                 return _chatroom;
@@ -51,8 +53,9 @@ namespace SteamNerd
 
         }
 
-        public PyModule(string path)
+        public PyModule(SteamNerd steamNerd, string path)
         {
+            SteamNerd = steamNerd;
             Commands = new List<Command>();
             Path = path;
             Global = false;
@@ -67,8 +70,10 @@ namespace SteamNerd
             Commands.Clear();
             var scope = pyEngine.CreateScope();
 
+            SayCallback say = (message, receiver) => Say(message, receiver);
             scope.SetVariable("SteamNerd", steamNerd);
             scope.SetVariable("Module", this);
+            scope.SetVariable("Say", say);
 
             try
             {
@@ -94,6 +99,12 @@ namespace SteamNerd
             }
 
             SetModuleCallbacks(scope);
+            Variables = scope.GetVariable("var");
+
+            // Add the name and description to the dynamic object, so you can
+            // get that info in your script.
+            Variables.Name = Name;
+            Variables.Description = Description;
 
             return scope;
         }
@@ -209,6 +220,28 @@ namespace SteamNerd
             }
 
             return candidate;
+        }
+        
+        /// <summary>
+        /// Sends a message to the chat or a receiver.
+        /// </summary>
+        /// <param name="message">The message you want to send.</param>
+        /// <param name="receiver">Who will receive this message? By default, it's the chat.</param>
+        public void Say(string message, SteamID receiver = null)
+        {
+            if (Global && receiver == null)
+            {
+                throw new MethodAccessException("Module is global, so a receiver must be supplied.");
+            }
+
+            if (receiver != null)
+            {
+                SteamNerd.SendMessage(message, receiver);
+            }
+            else
+            {
+                SteamNerd.SendMessage(message, Chatroom);
+            }
         }
 
         public void OnChatMessage(SteamFriends.ChatMsgCallback callback, string[] args)
