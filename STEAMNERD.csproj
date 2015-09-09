@@ -175,10 +175,13 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Modules\Help.py" />
     <Content Include="Modules\LingT.py" />
     <Content Include="Modules\Mingag.py" />
+    <Content Include="Modules\Money.py" />
     <Content Include="Modules\Party.py" />
     <Content Include="Modules\PersistentChat.py" />
+    <Content Include="Modules\Todo.py" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
