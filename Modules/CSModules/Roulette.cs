@@ -119,7 +119,7 @@ namespace SteamNerd.Modules
                     }
 
                     _moneyModule.AddMoney(chatter, chat, -_currentBet);
-                    
+
                     SteamNerd.SendMessage(string.Format("{0} has entered, matching ${1}. How brave...", name, _currentBet), chat);
 
                     _inProgress = true;
@@ -226,7 +226,7 @@ namespace SteamNerd.Modules
             _spinning = true;
             var name = SteamNerd.ChatterNames[chatter];
             var spin = _rand.Next(1, 7);
-            
+
             SteamNerd.SendMessage(string.Format("{0} spins the barrel...", name), chat);
 
 
@@ -274,7 +274,7 @@ namespace SteamNerd.Modules
             SteamNerd.SendMessage(string.Format("{0} wins! They win ${1}", name, _pool), chat);
             _moneyModule.AddMoney(player, chat, _pool);
 
-            foreach(var bet in _bets)
+            foreach (var bet in _bets)
             {
                 if (bet.Side == player)
                 {

@@ -133,26 +133,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Module.cs" />
     <Compile Include="ModuleManager.cs" />
-    <Compile Include="Modules\CSModules\AnimeRecommendationService.cs" />
-    <Compile Include="Modules\CSModules\Blackjack.cs" />
-    <Compile Include="Modules\CSModules\Countdown.cs" />
-    <Compile Include="Modules\CSModules\Deck.cs" />
-    <Compile Include="Modules\CSModules\Democracy.cs" />
-    <Compile Include="Modules\CSModules\Duel.cs" />
-    <Compile Include="Modules\CSModules\Help.cs" />
-    <Compile Include="Modules\CSModules\Joke.cs" />
-    <Compile Include="Modules\CSModules\LetterGames.cs" />
-    <Compile Include="Modules\CSModules\Money.cs" />
-    <Compile Include="Modules\CSModules\Party.cs" />
-    <Compile Include="Modules\CSModules\DiceRoll.cs" />
-    <Compile Include="Modules\CSModules\LingT.cs" />
-    <Compile Include="Modules\CSModules\Mingag.cs" />
-    <Compile Include="Modules\CSModules\PersistentChat.cs" />
-    <Compile Include="Modules\CSModules\Roulette.cs" />
-    <Compile Include="Modules\CSModules\Todo.cs" />
-    <Compile Include="Modules\CSModules\TrollSlayer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PyModule.cs" />

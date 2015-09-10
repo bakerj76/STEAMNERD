@@ -290,7 +290,7 @@ namespace SteamNerd.Modules
             {
                 var playerID = playerKV.Key;
                 var player = playerKV.Value;
-                
+
                 // Deal two cards. 
                 var hand = new Hand();
                 Deal(hand, 2);
@@ -342,7 +342,7 @@ namespace SteamNerd.Modules
             var blackjack = _dealerHand.GetValue() == 21;
             var hasAce = _dealerHand.Cards.Any(card => card.Rank == Deck.Rank.Ace);
             int value = _dealerHand.GetValue();
-            
+
             // Keep playing until the dealers hand is a hard-17 or above 17.
             while (true)
             {
@@ -479,7 +479,7 @@ namespace SteamNerd.Modules
                                 message.Append(string.Format(format, printIndex, hand, "8 Card Charlie Loss"));
                             }
                             break;
-                        
+
                         default:
                             if (dealerBusted || handValue > dealerValue)
                             {
@@ -711,7 +711,7 @@ namespace SteamNerd.Modules
             var name = SteamNerd.ChatterNames[playerID];
 
             var handNum = ParseHand(player, args);
-            var hand = player.Hands[handNum];  
+            var hand = player.Hands[handNum];
 
             if (hand.State != HandState.None)
             {
@@ -821,7 +821,7 @@ namespace SteamNerd.Modules
             }
 
             _moneyModule.AddMoney(playerID, _chat, -player.Bet);
-            
+
             // Split the hand
             var hand2 = new Hand();
             player.Hands.Add(hand2);
@@ -1034,7 +1034,7 @@ namespace SteamNerd.Modules
         {
             SteamNerd.SendMessage("Dealer hits!", _chat);
             Deal(_dealerHand);
-            
+
             return _dealerHand.Cards.Last().Rank == Deck.Rank.Ace;
         }
 
