@@ -175,12 +175,13 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Modules\Bank.py" />
     <Content Include="Modules\Help.py" />
     <Content Include="Modules\LingT.py" />
     <Content Include="Modules\Mingag.py" />
-    <Content Include="Modules\Money.py" />
     <Content Include="Modules\Party.py" />
     <Content Include="Modules\PersistentChat.py" />
+    <Content Include="Modules\Store.py" />
     <Content Include="Modules\Todo.py" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
