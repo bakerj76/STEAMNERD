@@ -83,7 +83,8 @@ namespace SteamNerd
                     "from System import Environment\n" +
                     "import clr\n" +
                     "import sys\n" +
-                    "sys.path.append(Environment.GetEnvironmentVariable('IRONPYTHONPATH'))\n" +
+                    "for path in Environment.GetEnvironmentVariable('IRONPYTHONPATH').split(';'):\n" +
+                    "   sys.path.append(path)\n" +
                     "sys.path.append(r'" + Directory.GetCurrentDirectory() + "')\n" +
                     "sys.path.append(r'" + ModuleManager.ModulesDirectory + "')\n" +
                     "clr.AddReference('SteamKit2.dll')\n" +
