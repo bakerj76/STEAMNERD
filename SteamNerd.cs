@@ -128,27 +128,15 @@ namespace SteamNerd
                 sentryHash = CryptoHelper.SHAHash(sentryFile);
             }
 
-            try
+            SteamUser.LogOn(new SteamUser.LogOnDetails
             {
-                SteamUser.LogOn(new SteamUser.LogOnDetails
-                {
-                    Username = _user,
-                    Password = _password,
+                Username = _user,
+                Password = _password,
 
-                    AuthCode = _authCode,
-                    TwoFactorCode = _twoFactorAuth,
-                    SentryFileHash = sentryHash,
-                }
-);
-            } 
-            catch (ArgumentException e)
-            {
-                Console.WriteLine("{0}", e.Message);
-
-                IsRunning = false;
-                return;
-            }
-
+                AuthCode = _authCode,
+                TwoFactorCode = _twoFactorAuth,
+                SentryFileHash = sentryHash,
+            });
         }
 
         private void OnDisconnect(SteamClient.DisconnectedCallback callback)

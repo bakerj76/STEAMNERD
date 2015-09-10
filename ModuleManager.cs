@@ -99,9 +99,10 @@ namespace SteamNerd
         {
             var fileName = Path.GetFileName(module.Path);
 
+            // If it doesn't have a name, it's probably not a module.
             if (module.Name == null)
             {
-                Console.WriteLine("{0} has no module name!", fileName);
+                //Console.WriteLine("{0} has no module name!", fileName);
                 return false;
             }
 
