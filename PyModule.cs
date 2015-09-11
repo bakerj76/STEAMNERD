@@ -257,7 +257,14 @@ namespace SteamNerd
         {
             if (Start != null)
             {
-                Start();
+                try
+                {
+                    Start();
+                }
+                catch (Exception e)
+                {
+                    ModuleManager.PrintStackFrame(e);
+                }
             }
         }
 

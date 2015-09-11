@@ -18,6 +18,7 @@ namespace SteamNerd
 
         private SteamNerd _steamNerd;
         private FileSystemWatcher _watcher;
+        private DateTime _lastRead;
         private ScriptEngine _pyEngine;
 
         private List<string> _localModulePaths;
@@ -77,7 +78,7 @@ namespace SteamNerd
             }
         }
 
-        private void CreateModule(string file)
+        private Module CreateModule(string file)
         {
             var module = new Module(_steamNerd, file);
 
@@ -87,6 +88,8 @@ namespace SteamNerd
             {  
                 AddModule(module);
             }
+
+            return module;
         }
 
         /// <summary>
@@ -305,11 +308,17 @@ namespace SteamNerd
         private void OnCreated(object source, FileSystemEventArgs e)
         {
             Console.WriteLine("{0} created.", e.Name);
-            CreateModule(e.FullPath);
+            var module = CreateModule(e.FullPath);
+
+            module.OnStart();
         }
 
         private void OnChanged(object source, FileSystemEventArgs e)
         {
+            var lastWriteTime = File.GetLastWriteTime(e.FullPath);
+
+            if (_lastRead != null && _lastRead == lastWriteTime) return;
+
             Console.WriteLine("{0} changed.", e.Name);
 
             var modules = _globalModules.Values.ToList();
@@ -318,7 +327,10 @@ namespace SteamNerd
             Thread.Sleep(100);
 
             RemoveModule(e.FullPath);
-            CreateModule(e.FullPath);
+            var module = CreateModule(e.FullPath);
+            module.OnStart();
+
+            _lastRead = lastWriteTime;
         }
 
         private void OnDelete(object source, FileSystemEventArgs e)
