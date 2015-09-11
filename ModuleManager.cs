@@ -21,16 +21,16 @@ namespace SteamNerd
         private ScriptEngine _pyEngine;
 
         private List<string> _localModulePaths;
-        private Dictionary<string, PyModule> _globalModules;
-        private Dictionary<SteamID, Dictionary<string, PyModule>> _chatroomModules;
+        private Dictionary<string, Module> _globalModules;
+        private Dictionary<SteamID, Dictionary<string, Module>> _chatroomModules;
 
         public ModuleManager(SteamNerd steamNerd)
         {
             _steamNerd = steamNerd;
             _pyEngine = Python.CreateEngine();
             _localModulePaths = new List<string>();
-            _globalModules = new Dictionary<string, PyModule>();
-            _chatroomModules = new Dictionary<SteamID, Dictionary<string, PyModule>>();
+            _globalModules = new Dictionary<string, Module>();
+            _chatroomModules = new Dictionary<SteamID, Dictionary<string, Module>>();
 
             InterpretDirectory();
 
@@ -79,7 +79,7 @@ namespace SteamNerd
 
         private void CreateModule(string file)
         {
-            var module = new PyModule(_steamNerd, file);
+            var module = new Module(_steamNerd, file);
 
             var scope = module.Interpret(_steamNerd, _pyEngine);
 
@@ -95,7 +95,7 @@ namespace SteamNerd
         /// </summary>
         /// <param name="module"></param>
         /// <returns></returns>
-        private bool CheckModule(PyModule module)
+        private bool CheckModule(Module module)
         {
             var fileName = Path.GetFileName(module.Path);
 
@@ -109,11 +109,14 @@ namespace SteamNerd
             return true;
         }
 
-        public void AddModule(PyModule module)
+        public void AddModule(Module module)
         {
             if (module.Global)
             {
                 _globalModules[module.Name] = module;
+
+                // Run start on global modules whenever they're added.
+                module.OnStart();
             }
             else
             {
@@ -128,17 +131,24 @@ namespace SteamNerd
 
         public void AddChatroom(SteamID chatroom)
         {
-            _chatroomModules[chatroom] = new Dictionary<string, PyModule>();
+            _chatroomModules[chatroom] = new Dictionary<string, Module>();
 
+            // Add every local module to this chat.
             foreach (var path in _localModulePaths)
             {
                 AddModuleToChatroom(path, chatroom);
+            }
+
+            // Run start on each local module.
+            foreach (var module in _chatroomModules[chatroom].Values)
+            {
+                module.OnStart();
             }
         }
 
         private void AddModuleToChatroom(string path, SteamID chatroom)
         {
-            var module = new PyModule(_steamNerd, path);
+            var module = new Module(_steamNerd, path);
             module.Chatroom = chatroom;
             module.Interpret(_steamNerd, _pyEngine);
             _chatroomModules[chatroom][module.Name] = module;

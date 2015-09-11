@@ -6,7 +6,7 @@ using Microsoft.Scripting.Hosting;
 
 namespace SteamNerd
 {
-    public class PyModule
+    public class Module
     {
         public struct Command
         {
@@ -18,6 +18,7 @@ namespace SteamNerd
         public delegate void CommandCallback(SteamFriends.ChatMsgCallback callback, string[] args);
         public delegate void SayCallback(string message, SteamID receiver = null);
 
+        private Action Start;
         private Action<SteamFriends.ChatMsgCallback, string[]> ChatMessage;
         private Action<SteamFriends.FriendMsgCallback, string[]> FriendMessage;
         private Action<SteamFriends.ChatEnterCallback> SelfChatEnterCallback;
@@ -53,7 +54,7 @@ namespace SteamNerd
 
         }
 
-        public PyModule(SteamNerd steamNerd, string path)
+        public Module(SteamNerd steamNerd, string path)
         {
             SteamNerd = steamNerd;
             Commands = new List<Command>();
@@ -119,6 +120,7 @@ namespace SteamNerd
         /// <param name="scope">The program scope</param>
         private void SetModuleCallbacks(ScriptScope scope)
         {
+            Action start;
             Action<SteamFriends.ChatMsgCallback, string[]> onChatMessage;
             Action<SteamFriends.FriendMsgCallback, string[]> onFriendMessage;
             Action<SteamFriends.ChatEnterCallback> onSelfEnterChat;
@@ -127,6 +129,11 @@ namespace SteamNerd
 
             try
             {
+                if (scope.TryGetVariable("Start", out start))
+                {
+                    Start = start;
+                }
+
                 if (scope.TryGetVariable("OnChatMessage", out onChatMessage))
                 {
                     ChatMessage = onChatMessage;
@@ -243,6 +250,14 @@ namespace SteamNerd
             else
             {
                 SteamNerd.SendMessage(message, Chatroom);
+            }
+        }
+
+        public void OnStart()
+        {
+            if (Start != null)
+            {
+                Start();
             }
         }
 

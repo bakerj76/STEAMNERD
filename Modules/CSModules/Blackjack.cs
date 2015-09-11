@@ -32,8 +32,6 @@ namespace SteamNerd.Modules
         public enum HandState { None, Stand, DoubleDown, Surrender, Blackjack, Bust, AceSplit, Charlie }
 
         private Money _moneyModule;
-        private Random _rand;
-
         private List<SteamID> _waiting;
         private Dictionary<SteamID, Player> _players;
         private Hand _dealerHand;
@@ -182,7 +180,6 @@ namespace SteamNerd.Modules
             );
 
             //_moneyModule = (Money)SteamNerd.GetModule("Money");
-            _rand = new Random();
             _waiting = new List<SteamID>();
             _players = new Dictionary<SteamID, Player>();
             _deck = new Deck();
