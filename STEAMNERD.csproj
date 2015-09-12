@@ -136,7 +136,7 @@
     <Compile Include="ModuleManager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PyModule.cs" />
+    <Compile Include="Module.cs" />
     <Compile Include="SteamNerd.cs" />
   </ItemGroup>
   <ItemGroup>

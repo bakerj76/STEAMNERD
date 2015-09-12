@@ -78,7 +78,7 @@ namespace SteamNerd
             }
         }
 
-        private Module CreateModule(string file)
+        private void CreateModule(string file)
         {
             var module = new Module(_steamNerd, file);
 
@@ -88,8 +88,6 @@ namespace SteamNerd
             {  
                 AddModule(module);
             }
-
-            return module;
         }
 
         /// <summary>
@@ -105,7 +103,6 @@ namespace SteamNerd
             // If it doesn't have a name, it's probably not a module.
             if (module.Name == null)
             {
-                //Console.WriteLine("{0} has no module name!", fileName);
                 return false;
             }
 
@@ -127,7 +124,8 @@ namespace SteamNerd
 
                 foreach (var chatroom in _chatroomModules.Keys)
                 {
-                    AddModuleToChatroom(module.Path, chatroom);
+                    var chatModule = AddModuleToChatroom(module.Path, chatroom);
+                    chatModule.OnStart();
                 }
             }
         }
@@ -149,12 +147,14 @@ namespace SteamNerd
             }
         }
 
-        private void AddModuleToChatroom(string path, SteamID chatroom)
+        private Module AddModuleToChatroom(string path, SteamID chatroom)
         {
             var module = new Module(_steamNerd, path);
             module.Chatroom = chatroom;
             module.Interpret(_steamNerd, _pyEngine);
             _chatroomModules[chatroom][module.Name] = module;
+
+            return module;
         }
 
         /// <summary>
@@ -171,7 +171,7 @@ namespace SteamNerd
             // Find in globals.
             if (_globalModules.ContainsKey(moduleName))
             {
-                return _globalModules[moduleName];
+                return _globalModules[moduleName].Variables;
             }
 
             // Find in locals.
@@ -181,7 +181,7 @@ namespace SteamNerd
                 {
                     if (_chatroomModules[chatroom].ContainsKey(moduleName))
                     {
-                        return _chatroomModules[chatroom][moduleName];
+                        return _chatroomModules[chatroom][moduleName].Variables;
                     }
                 }
             }
@@ -308,9 +308,7 @@ namespace SteamNerd
         private void OnCreated(object source, FileSystemEventArgs e)
         {
             Console.WriteLine("{0} created.", e.Name);
-            var module = CreateModule(e.FullPath);
-
-            module.OnStart();
+            CreateModule(e.FullPath);
         }
 
         private void OnChanged(object source, FileSystemEventArgs e)
@@ -327,8 +325,7 @@ namespace SteamNerd
             Thread.Sleep(100);
 
             RemoveModule(e.FullPath);
-            var module = CreateModule(e.FullPath);
-            module.OnStart();
+            CreateModule(e.FullPath);
 
             _lastRead = lastWriteTime;
         }

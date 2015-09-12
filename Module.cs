@@ -253,6 +253,18 @@ namespace SteamNerd
             }
         }
 
+        public dynamic GetModule(string moduleName)
+        {
+            return Global ? SteamNerd.GetModule(moduleName) :
+                SteamNerd.GetModule(moduleName, Chatroom);
+        }
+
+        public dynamic GetModules()
+        {
+            return Global ? SteamNerd.GetModules() :
+                SteamNerd.GetModules(Chatroom);
+        }
+
         public void OnStart()
         {
             if (Start != null)
