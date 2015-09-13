@@ -313,21 +313,20 @@ namespace SteamNerd
 
         private void OnChanged(object source, FileSystemEventArgs e)
         {
-            var lastWriteTime = File.GetLastWriteTime(e.FullPath);
-
-            if (_lastRead != null && _lastRead == lastWriteTime) return;
+            // Make OnChanged "atomic," so we don't get two OnChanged events.
+            _watcher.EnableRaisingEvents = false;
 
             Console.WriteLine("{0} changed.", e.Name);
 
             var modules = _globalModules.Values.ToList();
 
-            // Sleep to avoid reading while text editor is writing.
+            // Sleep to avoid reading while text editor is writing (?).
             Thread.Sleep(100);
 
             RemoveModule(e.FullPath);
             CreateModule(e.FullPath);
 
-            _lastRead = lastWriteTime;
+            _watcher.EnableRaisingEvents = true;
         }
 
         private void OnDelete(object source, FileSystemEventArgs e)

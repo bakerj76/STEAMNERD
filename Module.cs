@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using SteamKit2;
 using Microsoft.Scripting.Hosting;
@@ -84,10 +85,10 @@ namespace SteamNerd
                     "from System import Environment\n" +
                     "import clr\n" +
                     "import sys\n" +
-                    "for path in Environment.GetEnvironmentVariable('IRONPYTHONPATH').split(';'):\n" +
-                    "   sys.path.append(path)\n" +
                     "sys.path.append(r'" + Directory.GetCurrentDirectory() + "')\n" +
                     "sys.path.append(r'" + ModuleManager.ModulesDirectory + "')\n" +
+                    "for path in Environment.GetEnvironmentVariable('IRONPYTHONPATH').split(';'):\n" +
+                    "   sys.path.append(path)\n" +
                     "clr.AddReference('SteamKit2.dll')\n" +
                     "class var:\n" +
                     "   pass", 
@@ -102,13 +103,40 @@ namespace SteamNerd
             }
 
             SetModuleCallbacks(scope);
-            Variables = scope.GetVariable("var");
+
+            Variables = new ExpandoObject();
+
+            //Variables = scope.GetVariable("var");
 
             // Add the name and description to the dynamic object, so you can
             // get that info in your script.
             Variables.Name = Name;
             Variables.Description = Description;
 
+            // Add any functions to Variables
+            foreach (var pyVarKV in scope.GetItems())
+            {
+                var name = pyVarKV.Key;
+                var value = pyVarKV.Value;
+                Action pyFunc;
+
+                // Hide "private" variables
+                if (name.StartsWith("_")) continue;
+                
+                try
+                {
+                    if (scope.TryGetVariable<Action>(name, out pyFunc))
+                    {
+                        (Variables as IDictionary<string, object>).Add(name, value);
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+
+            }
+            
             return scope;
         }
 
