@@ -10,7 +10,7 @@ def OnChatMessage(callback, args):
 
     if message.lower().find('mingag') >= 0:
         print "Messaging Mingag."
-        SteamNerd.SendMessage(
+        Say(
             str.format('{}: {}', SteamNerd.GetName(callback.ChatterID), message), 
             mingag
         )

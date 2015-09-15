@@ -29,6 +29,10 @@ def GetHelpOnModule(callback, args):
 		message = "{}\n{}\n\n".format(module.Name, module.Description)
 		
 		for command in module.Commands:
+			# Skip commands without a description.
+			if command.Description == "": 
+				continue
+				
 			message += "{}{:<50}{}\n".format(SteamNerd.CommandChar, ' '.join(command.Match), command.Description)
 	
 		SteamNerd.SendMessage(message, callback.ChatRoomID)

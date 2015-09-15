@@ -15,6 +15,7 @@ class Loan:
 		self.InterestStart = datetime.now()
 		self.Fee = fee
 		
+		
 	""" 
 		Gets the amount of the loan + interest. 
 	"""
@@ -26,8 +27,8 @@ class Loan:
 		
 		# Use the continuous interest formula to FUCK PEOPLE OVER EVEN MORE.
 		amount = self._currentAmount * math.e ** (self.Interest * interestTime)
-		print amount
 		return int(amount)
+	
 	
 	""" 
 		Pays off the loan and resets the amount.
@@ -47,13 +48,14 @@ class Loan:
 
 var.PlayerMoney = {}
 var.PlayerLoans = {}
-var.LoanTypes = [Loan(100, 0.10, 10), Loan(500, 0.15, 50), Loan(1000, 0.20, 100), Loan(100000, 0.25, 10000)]
+var.LoanTypes = [Loan(100, 0.10, 10), Loan(500, 0.15, 50), Loan(1000, 0.20, 100)]
 	
 var.MoneyFile = "Money.p"
 var.MoneyPath = os.path.join(os.getenv('APPDATA'), "SteamNerd", var.MoneyFile)	
 var.LoanFile = "Loans.p"
 var.LoanPath = os.path.join(os.getenv('APPDATA'), "SteamNerd", var.LoanFile)
 var.Changed = False
+
 
 def Load():
 	try:
@@ -62,16 +64,19 @@ def Load():
 	except:
 		pass
 
+
 def Save():
 	if var.Changed:
 		var.Changed = False
 		pickle.dump(var.PlayerMoney, open(var.MoneyPath, 'wb'))
 		pickle.dump(var.PlayerLoans, open(var.LoanPath, 'wb'))
 		
+		
 def AddChatter(steamID):
 	var.PlayerMoney[steamID] = 200
 	var.PlayerLoans[steamID] = []
 	var.Changed = True
+	
 	
 def GetMoney(chatter):
 	if not chatter in var.PlayerMoney:
@@ -79,11 +84,13 @@ def GetMoney(chatter):
 	
 	return var.PlayerMoney[chatter]
 	
+	
 def GetDebt(chatter):
 	if not chatter in var.PlayerLoans:
 		AddChatter(chatter)
 		
 	return sum(loan.GetAmount() for loan in var.PlayerLoans[chatter])
+
 
 def GiveMoney(chatter, amount):
 	if not chatter in var.PlayerMoney:
@@ -91,6 +98,7 @@ def GiveMoney(chatter, amount):
 		
 	var.PlayerMoney[chatter] += amount
 	var.Changed = True
+
 
 def ViewMoney(callback, args):
 	chatter = callback.ChatterID
@@ -103,6 +111,7 @@ def ViewMoney(callback, args):
 		message += "{} is ${} in debt.".format(name, GetDebt(chatter))
 		
 	Say(message)
+
 
 def BuyLoans(callback, args):
 	chatter = callback.ChatterID
@@ -121,14 +130,21 @@ def BuyLoans(callback, args):
 			Say("That isn't a number!")
 			return
 		
-		if loanIndex < 0 or loanIndex > len(var.LoanTypes):
+		if loanIndex < 0 or loanIndex >= len(var.LoanTypes):
 			Say("Invalid loan number!")
 			return
 		
 		loanType = var.LoanTypes[loanIndex]
+		
+		if GetMoney(chatter) < loanType.Fee:
+			Say("You can't afford this loan!")
+			return
+			
 		loan = Loan(loanType.Amount, loanType.Interest, loanType.Fee)
 		var.PlayerLoans[chatter].append(loan)
+		GiveMoney(chatter, -loan.Fee)
 		GiveMoney(chatter, loan.Amount)
+
 
 def Payback(callback, args):
 	chatter = callback.ChatterID
@@ -187,6 +203,10 @@ def Payback(callback, args):
 	if money < payback:
 		Say("You don't have enough money to payback that much!")
 		return
+		
+	if payback < 0:
+		Say("You can't payback a negative amount!")
+		return
 	
 	GiveMoney(chatter, -payback)
 	
@@ -194,6 +214,7 @@ def Payback(callback, args):
 		loans.remove(loan)	
 	
 	var.Changed = True			
+	
 			
 def ViewLoans():
 	message = "Loans:\n"
@@ -228,6 +249,7 @@ def ViewDebts(callback, args):
 		"    {:<15} ${:<3}\n".format("Initial Fee:", loan.Fee)
 		
 	Say(message)
+	
 	
 def Bank(callback, args):
 	ViewMoney(callback, args)
@@ -274,6 +296,7 @@ def Give(callback, args):
 
 	Say("{} gave {} ${}!".format(name, recipientName, amount))
 
+
 def Bankrupt(callback, args):
 	chatter = callback.ChatterID
 	var.PlayerMoney[chatter] = 200
@@ -283,12 +306,12 @@ def Bankrupt(callback, args):
 		.format(SteamNerd.GetName(callback.ChatterID)))
 		
 	
-Load()
-saveTimer = Timer(60, Save)
-saveTimer.start()
+#Load()
+#saveTimer = Timer(60, Save)
+#saveTimer.start()
 
 Module.AddCommand(
-	"money", 
+	"money",
 	"View your money.", 
 	ViewMoney
 )
@@ -323,5 +346,5 @@ Module.AddCommand(
 Module.AddCommand(
 	"give", 
 	"Give money to another chatter. Usage: {}give [chatter] [amount]".format(SteamNerd.CommandChar),
-	Give
+	Give 
 )

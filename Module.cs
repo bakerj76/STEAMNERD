@@ -105,7 +105,6 @@ namespace SteamNerd
             SetModuleCallbacks(scope);
 
             Variables = new ExpandoObject();
-
             //Variables = scope.GetVariable("var");
 
             // Add the name and description to the dynamic object, so you can

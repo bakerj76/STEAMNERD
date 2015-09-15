@@ -1,6 +1,7 @@
 ﻿import os
 import cPickle as pickle
-from threading import Timer
+import threading
+import time
 
 Module.Name = "TODO"
 Module.Description = "Things to do."
@@ -18,9 +19,14 @@ def LoadTodo():
 		pass
 
 def SaveTodo():
+	print "Saving"
+	
 	if var.Changed:
 		var.Changed = False
 		pickle.dump(var.TodoList, open(var.Path, 'wb'))
+		
+	#threading.Timer(60, SaveTodo)
+		
 
 def PrintTodo(callback, args):
 	message = ""
@@ -93,8 +99,7 @@ def CheckNumber(arg):
 	return line
 
 LoadTodo()
-saveTimer = Timer(60, SaveTodo)
-saveTimer.start()
+#threading.Timer(60, SaveTodo)
 	
 Module.AddCommand("todo", "Print the todo list.", PrintTodo)
 
