@@ -9,7 +9,7 @@ BlackjackStates = Enum('BlackjackStates', 'NoGame Waiting Dealing ' + \
 	'PlayerTurn DealerTurn Payout')
 
 HandStates = Enum('HandStates', 'None Stand DoubleDown Surrender ' + \
-	'Blackjack Bust AceSplit Charlie')
+	'Blackjack Bust Split AceSplit Charlie')
 
 # Classes
 class Player:
@@ -74,7 +74,7 @@ class Hand:
 	def SetState(self, state):
 		self.State = state
 
-		if not state in (HandStates.None, HandStates.AceSplit):
+		if not state in (HandStates.None, HandStates.Split):
 			self.Done = True
 		
 	def CheckState(self):
@@ -116,7 +116,7 @@ class Hand:
 			return -bet
 
 		if dealerHand.State == HandStates.Bust:
-			return bet * (2 if self.State == HandStates.DoubleDown else 1)
+			dealerPoints = 0
 
 		# Dealer wins with more points except on 8-card Charlies
 		if dealerPoints > points and self.State != HandStates.Charlie:
@@ -137,7 +137,7 @@ class Hand:
 			return bet * 2
 
 		if self.State == HandStates.Blackjack:
-			return bet * (3./2)
+			return int(bet * (3./2))
 
 		if self.State == HandStates.Charlie:
 			# Lose on charlie vs natural 21
@@ -145,6 +145,9 @@ class Hand:
 				return 0
 			else:
 				return bet
+
+		if self.State == HandStates.Surrender:
+			return -bet / 2
 
 		return bet
 
@@ -156,7 +159,7 @@ var.WaitingQueue = {}
 var.Players = {}
 var.CanInsure = False
 var.GameState = BlackjackStates.NoGame
-var.Skips = 0
+var.Skippers = []
 var.Usage = "Usage: {0}blackjack [bet amount] or {0}bj [bet amount]".format(SteamNerd.CommandChar)
 var.DealerHand = Hand()
 
@@ -231,8 +234,9 @@ def Waiting():
 		player = var.Players[steamID]
 		var.Bank.GiveMoney(steamID, -player.Bet)
 
-	Say("Blackjack is starting in 30 seconds.\n" + \
-	"Join with {0}blackjack [bet amount] or {0}bj [bet amount]."
+	Say(("Blackjack is starting in 30 seconds.\n" + \
+	"Join with {0}blackjack [bet amount] or {0}bj [bet amount].\n" + \
+	"Change your bet with 'bet [amount]'.")
 	.format(SteamNerd.CommandChar))
 	
 	var.Countdown = countdown.Countdown(
@@ -244,6 +248,7 @@ def Waiting():
 	var.Countdown.start()
 	
 def Dealing():
+	del var.Skippers[:]
 	_dealerDeal()
 	_playerDeal()
 
@@ -258,6 +263,12 @@ def _dealerDeal():
 	var.DealerHand.Deal(var.Deck.GetCards(2))
 	var.DealerHand.Cards[1].FaceDown = True
 	Say("Dealer:\n{}".format(var.DealerHand))
+
+	if var.DealerHand.Cards[0].Rank == deck.Ranks.Ace:
+		Say("Dealer has an Ace! Use 'insure' to buy insurance.")
+		var.CanInsure = True
+	else:
+		var.CanInsure = False
 	
 def _playerDeal():
 	for steamID in var.Players:
@@ -274,7 +285,7 @@ def DealerTurn():
 	points = hand.GetPoints()
 
 	while points < 17 or (points == 17 and hand.Soft):
-		time.sleep(5)
+		time.sleep(2)
 		Say("Dealer:\n{} {}".format(hand, points))
 		hand.Deal(var.Deck.GetCards())
 		points = hand.GetPoints()
@@ -298,12 +309,22 @@ def Payout():
 
 		for hand in player.Hands:
 			payout = hand.Payout(player.Bet, var.DealerHand)
-			message += "{} {}\n".format(hand, payout)
+			message += "{} [{}]\n".format(hand, payout)
 			total += payout
+
+		if var.CanInsure:
+			insurancePay = 0
+
+			if var.DealerHand.State == HandStates.Blackjack:
+				insurancePay = (player.Bet / 2) * 2
+			else:
+				insurancePay = -player.Bet / 2
+
+			message += "Insurance [{}]".format(insurancePay)
 
 		var.Bank.GiveMoney(steamID, player.Bet + total)
 
-		message += ("Total: (${})" if total < 0 else"Total: ${}").format(abs(total))
+		message += ("Total: (${})" if total < 0 else "Total: ${}").format(abs(total))
 		Say(message)
 
 
@@ -333,20 +354,24 @@ def OnChatMessage(callback, args):
 		elif command in ("stand", "stay", "stick"):
 			_stand(callback, args, player)
 		elif command == "surrender":
-			pass
+			_surrender(callback, args, player)
 		elif command == "double":
-			pass
+			_double(callback, args, player)
 		elif command == "split":
-			pass
+			_split(callback, args, player)
+		elif command == "insure":
+			_insure(chatter, player)
 
-		if all(player.CheckDone() for player in var.Players.values()):
-			SetState(BlackjackStates.DealerTurn)
-
+		CheckPlayersDone()
 	elif var.GameState == BlackjackStates.Waiting:
-		if command == "skip":
-			pass
-		elif command == "bet":
-			pass
+		if command == "bet":
+			_bet(callback, args, player)
+		elif command == "skip":
+			_skip(chatter)
+
+def CheckPlayersDone():
+	if all(player.CheckDone() for player in var.Players.values()):
+		SetState(BlackjackStates.DealerTurn)
 
 def _hit(callback, args, player):
 	name = SteamNerd.GetName(callback.ChatterID)
@@ -358,7 +383,7 @@ def _hit(callback, args, player):
 
 	hand = player.Hands[handNum]
 
-	if not hand.State in (HandStates.None, HandStates.AceSplit):
+	if not hand.State in (HandStates.None, HandStates.Split):
 		Say("Cannot hit on {}.".format(hand.StateString()))
 		return
 
@@ -375,11 +400,87 @@ def _stand(callback, args, player):
 
 	hand = player.Hands[handNum]
 
-	if not hand.State in (HandStates.None, HandStates.AceSplit):
+	if not hand.State in (HandStates.None, HandStates.Split):
 		Say("Cannot stand on {}.".format(hand.StateString()))
 		return
 
 	hand.SetState(HandStates.Stand)
+	Say("{} [Bet: {}]:\n{}".format(name, player.Bet, str(player)))
+
+def _surrender(callback, args, player):
+	name = SteamNerd.GetName(callback.ChatterID)
+	handNum = GetHandIndex(args, player)
+
+	if handNum < 0:
+		Say("Invalid hand number!")
+		return
+
+	hand = player.Hands[handNum]
+
+	if not hand.State in (HandStates.None, HandStates.Split):
+		Say("Cannot surrender on {}.".format(hand.StateString()))
+		return
+
+	hand.SetState(HandStates.Surrender)
+	Say("{} [Bet: {}]:\n{}".format(name, player.Bet, str(player)))
+
+def _double(callback, args, player):
+	name = SteamNerd.GetName(callback.ChatterID)
+	handNum = GetHandIndex(args, player)
+
+	if handNum < 0:
+		Say("Invalid hand number!")
+		return
+
+	hand = player.Hands[handNum]
+
+	if not hand.State in (HandStates.None, HandStates.Split):
+		Say("Cannot double down on {}.".format(hand.StateString()))
+		return
+
+	if len(hand.Cards) > 2:
+		Say("Cannot double down after hitting!")
+		return
+
+	hand.Deal(var.Deck.GetCards())
+	hand.SetState(HandStates.DoubleDown)
+	Say("{} [Bet: {}]:\n{}".format(name, player.Bet, str(player)))
+
+def _split(callback, args, player):
+	name = SteamNerd.GetName(callback.ChatterID)
+	handNum = GetHandIndex(args, player)
+
+	if handNum < 0:
+		Say("Invalid hand number!")
+		return
+
+	hand = player.Hands[handNum]
+
+	if hand.Cards[0].Rank != hand.Cards[1].Rank:
+		Say("Cannot split on unequal cards!")
+		return
+
+	if len(hand.Cards) > 2:
+		Say("Cannot split after hitting!")
+		return
+
+	if any(plHand.State == HandStates.AceSplit for plHand in player.Hands):
+		Say("Cannot split on aces twice!")
+
+	card = hand.Cards.pop()
+	newHand = Hand()
+	newHand.Deal(card)
+
+	if card.Rank == deck.Ranks.Ace:
+		newHand.State = HandStates.AceSplit
+		hand.State = HandStates.AceSplit
+	else:
+		newHand.State = HandStates.Split
+		hand.State = HandStates.Split
+
+	hand.Deal(var.Deck.GetCards())
+	newHand.Deal(var.Deck.GetCards())
+	player.Hands.append(newHand)
 	Say("{} [Bet: {}]:\n{}".format(name, player.Bet, str(player)))
 
 def GetHandIndex(args, player):
@@ -393,6 +494,63 @@ def GetHandIndex(args, player):
 			return -1
 
 	return 0
+
+def _insure(steamID, player):
+	if not CanInsure:
+		return
+
+	insurance = player.Bet / 2
+
+	if var.Bank.GetMoney(steamID) < insurance:
+		Say("You don't have enough money to insure!")
+		return
+
+	var.Bank.GiveMoney(steamID, -insurance)
+	player.HasInsurance = True
+
+def _bet(callback, args, player):
+	chatter = callback.ChatterID
+	name = SteamNerd.GetName(chatter)
+
+	if len(args) < 2:
+		Say("Usage: bet [amount]")
+
+	bet = 0
+
+	try:
+		bet = int(args[1])
+	except ValueError:
+		Say("That's not a number!")
+		return
+
+	if bet <= 0:
+		Say("You must bet more than $0!")
+		return
+
+	if bet > var.Bank.GetMoney(chatter):
+		Say("You don't have ${}!".format(bet))
+		return
+
+	var.Bank.GiveMoney(chatter, player.Bet)
+	var.Bank.GiveMoney(chatter, -bet)
+	player.Bet = bet
+
+	Say("{} changed their bet to ${}!".format(name, bet))
+
+def _skip(player):
+	name = SteamNerd.GetName(player)
+
+	if player in var.Skippers:
+		return
+
+	var.Skippers.append(player)
+
+	if len(var.Skippers) != len(var.Players):
+		Say("{} voted to skip. ({}/{})", name, len(var.Skippers), len(var.Players))
+	else:
+		Say("Starting the game!")
+		var.Countdown.stop()
+		SetState(BlackjackStates.Dealing)
 
 def _quit(steamID):
 	if steamID in var.WaitingQueue:
@@ -408,6 +566,10 @@ def _quit(steamID):
 		del var.Players[steamID]
 
 		Say("{} is quitting the game!".format(SteamNerd.GetName(steamID)))
+		
+		if len(var.Players) > 0:
+			CheckPlayersDone()
+
 		CheckEnd()
 
 def CheckEnd():
@@ -415,8 +577,10 @@ def CheckEnd():
 		if var.Countdown:
 			var.Countdown.stop()
 
+		var.DealerHand = Hand()
 		SetState(BlackjackStates.NoGame)
 		Say("Blackjack... is OVER!")
+
 
 Module.AddCommand(
 	"blackjack", 
