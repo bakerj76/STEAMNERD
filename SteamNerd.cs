@@ -15,48 +15,34 @@ namespace SteamNerd
 
         public bool IsRunning;
 
-        public readonly SteamFriends SteamFriends;
-
         public Dictionary<SteamID, string> ChatterNames { get; private set; }
-        public Dictionary<SteamID, Chatroom> Chatrooms { get; private set; }
+        public Dictionary<SteamID, ChatRoom> ChatRooms { get; private set; }
 
         public readonly SteamUser SteamUser;
-        private readonly SteamClient _steamClient;
-        private readonly CallbackManager _manager;
-        public ModuleManager ModuleManager;
+        public readonly SteamClient SteamClient;
+        public readonly SteamFriends SteamFriends;
+        public readonly CallbackManager CallbackManager;
+        public readonly ModuleManager ModuleManager;
 
         private readonly string _user;
         private string _password;
         private string _authCode;
         private string _twoFactorAuth;
 
-        public class Chatroom
-        {
-            public SteamID SteamID;
-            public string Name { get; set; }
-            public List<SteamID> Chatters { get; private set; }
-
-            public Chatroom(string name)
-            {
-                Name = name;
-                Chatters = new List<SteamID>();
-            }
-        }
-
         public SteamNerd(string user, string pass)
         {
             _user = user;
             _password = pass;
 
-            _steamClient = new SteamClient();
-            _manager = new CallbackManager(_steamClient);
+            SteamClient = new SteamClient();
+            CallbackManager = new CallbackManager(SteamClient);
             ModuleManager = new ModuleManager(this);
 
-            SteamUser = _steamClient.GetHandler<SteamUser>();
-            SteamFriends = _steamClient.GetHandler<SteamFriends>();
+            SteamUser = SteamClient.GetHandler<SteamUser>();
+            SteamFriends = SteamClient.GetHandler<SteamFriends>();
 
             ChatterNames = new Dictionary<SteamID, string>();
-            Chatrooms = new Dictionary<SteamID, Chatroom>();
+            ChatRooms = new Dictionary<SteamID, ChatRoom>();
 
             SubscribeCallbacks();
         }
@@ -68,29 +54,29 @@ namespace SteamNerd
         {
             #region Steam Client Callbacks
 
-            _manager.Subscribe<SteamClient.ConnectedCallback>(OnConnect);
-            _manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnect);
+            CallbackManager.Subscribe<SteamClient.ConnectedCallback>(OnConnect);
+            CallbackManager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnect);
 
             #endregion
 
             #region Steam User Callbacks
 
-            _manager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
-            _manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
-            _manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
-            _manager.Subscribe<SteamUser.AccountInfoCallback>(OnAccountInfo);
+            CallbackManager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
+            CallbackManager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
+            CallbackManager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
+            CallbackManager.Subscribe<SteamUser.AccountInfoCallback>(OnAccountInfo);
 
             #endregion
 
             #region Steam Friend Callbacks
 
-            _manager.Subscribe<SteamFriends.PersonaStateCallback>(OnPersonaState);
-            _manager.Subscribe<SteamFriends.FriendMsgCallback>(OnFriendMsg);
-            _manager.Subscribe<SteamFriends.FriendsListCallback>(OnFriendsList);
-            _manager.Subscribe<SteamFriends.ChatMsgCallback>(OnChatMsg);
-            _manager.Subscribe<SteamFriends.ChatInviteCallback>(OnChatInvite);
-            _manager.Subscribe<SteamFriends.ChatEnterCallback>(OnChatEnter);
-            _manager.Subscribe<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo);
+            CallbackManager.Subscribe<SteamFriends.PersonaStateCallback>(OnPersonaState);
+            CallbackManager.Subscribe<SteamFriends.FriendMsgCallback>(OnFriendMsg);
+            CallbackManager.Subscribe<SteamFriends.FriendsListCallback>(OnFriendsList);
+            CallbackManager.Subscribe<SteamFriends.ChatMsgCallback>(OnChatMsg);
+            CallbackManager.Subscribe<SteamFriends.ChatInviteCallback>(OnChatInvite);
+            CallbackManager.Subscribe<SteamFriends.ChatEnterCallback>(OnChatEnter);
+            CallbackManager.Subscribe<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo);
 
             #endregion
         }
@@ -99,13 +85,13 @@ namespace SteamNerd
         public void Connect()
         {
             IsRunning = true;
-            _steamClient.Connect();
+            SteamClient.Connect();
 
             Console.WriteLine("Connecting to Steam as {0}...", _user);
 
             while (IsRunning)
             {
-               _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1f));
+               CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(1f));
             }
         }
 
@@ -144,7 +130,7 @@ namespace SteamNerd
             Console.WriteLine("Disconnected! Reconnecting...");
 
             Thread.Sleep(TimeSpan.FromSeconds(5));
-            _steamClient.Connect();
+            SteamClient.Connect();
         }
 
         public void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
@@ -281,7 +267,7 @@ namespace SteamNerd
         {
             var chatRoomID = callback.ChatRoomID;
 
-            if (!Chatrooms.ContainsKey(chatRoomID)) return;
+            if (!ChatRooms.ContainsKey(chatRoomID)) return;
 
             var stateChangeInfo = callback.StateChangeInfo;
             var chatterID = stateChangeInfo.ChatterActedOn;
@@ -292,10 +278,10 @@ namespace SteamNerd
                 case EChatMemberStateChange.Disconnected:
                 case EChatMemberStateChange.Kicked:
                 case EChatMemberStateChange.Left:
-                    Console.WriteLine("Removing {0} from {1}", ChatterNames[chatterID], Chatrooms[chatRoomID].Name);
+                    Console.WriteLine("Removing {0} from {1}", ChatterNames[chatterID], ChatRooms[chatRoomID].Name);
                     ModuleManager.LeftChat(callback);
                     ChatterNames.Remove(chatterID);
-                    Chatrooms[chatRoomID].Chatters.Remove(chatterID);
+                    ChatRooms[chatRoomID].Chatters.Remove(chatterID);
                     break;
             }
         }
@@ -386,16 +372,16 @@ namespace SteamNerd
 
         public void AddChatroom(SteamID chatroom, string name)
         {
-            if (Chatrooms.ContainsKey(chatroom))
+            if (ChatRooms.ContainsKey(chatroom))
             {
-                if (Chatrooms[chatroom].Name == null)
+                if (ChatRooms[chatroom].Name == null)
                 {
-                    Chatrooms[chatroom].Name = name;
+                    ChatRooms[chatroom].Name = name;
                 }
             }
             else
             {
-                Chatrooms[chatroom] = new Chatroom(name);
+                ChatRooms[chatroom] = new ChatRoom(name);
                 ModuleManager.AddChatroom(chatroom);
             }
         }
@@ -404,7 +390,7 @@ namespace SteamNerd
         {
             Console.WriteLine("Adding {0}", name);
             ChatterNames.Add(chatterID, name);
-            Chatrooms[chatID].Chatters.Add(chatterID);
+            ChatRooms[chatID].Chatters.Add(chatterID);
         }
 
         public dynamic[] GetModules(SteamID chatroomID = null)
