@@ -16,13 +16,13 @@ namespace SteamNerd
             CheckArgs(args, out user, out password);
             if (user == "") return;
 
-            var steamNerd = new SteamNerd(user, password);
+            var steamNerd = new SteamNerd();
 
             while (true)
             {
                 try
                 {
-                    steamNerd.Connect();
+                    steamNerd.Connect(user, password);
                 }
                 catch (ArgumentException e)
                 {

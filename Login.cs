@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading;
 using SteamKit2;
 
 namespace SteamNerd
@@ -12,6 +13,7 @@ namespace SteamNerd
         private string _password;
         private string _authCode;
         private string _twoFactorCode;
+        private string _loginKey;
 
         public Login(SteamNerd steamNerd, CallbackManager manager)
         {
@@ -21,22 +23,26 @@ namespace SteamNerd
             manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnect);
             manager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
             manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
+            manager.Subscribe<SteamUser.LoginKeyCallback>(OnLoginKey);
         }
 
-        public void Connect()
+        public void Connect(string username, string password)
         {
             Console.WriteLine("Connecting to Steam...");
             _steamNerd.SteamClient.Connect();
+
+            _username = username;
+            _password = password;
         }
 
-        public void OnConnect(SteamClient.ConnectedCallback callback)
+        private void OnConnect(SteamClient.ConnectedCallback callback)
         {
             // Some error popped up while trying to log in
             if (callback.Result != EResult.OK)
             {
                 Console.WriteLine("{0}", callback.Result);
 
-                //_steamNerd.IsRunning = false;
+                _steamNerd.IsRunning = false;
                 return;
             }
 
@@ -53,18 +59,15 @@ namespace SteamNerd
                 Username = _username,
                 Password = _password,
 
+                LoginKey = _loginKey,
+
                 AuthCode = _authCode,
                 TwoFactorCode = _twoFactorCode,
                 SentryFileHash = sentryHash,
             });
         }
 
-        public void OnDisconnect(SteamClient.DisconnectedCallback callback)
-        {
-
-        }
-
-        public void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
+        private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
             Console.WriteLine("Updating sentryfile...");
 
@@ -122,12 +125,12 @@ namespace SteamNerd
 
                 if (is2FA)
                 {
-                    Console.Write("Please enter your 2 factor auth code from your authenticator app: ");
+                    Console.Write("Please enter your two-factor authentication code: ");
                     _twoFactorCode = Console.ReadLine();
                 }
                 else
                 {
-                    Console.Write("Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
+                    Console.Write("Please enter the authentication code sent to the email at {0}: ", callback.EmailDomain);
                     _authCode = Console.ReadLine();
                 }
 
@@ -138,12 +141,25 @@ namespace SteamNerd
             {
                 Console.WriteLine("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult);
 
-                //_steamNerd.IsRunning = false;
+                _steamNerd.IsRunning = false;
                 return;
             }
 
-            //Console.WriteLine("Logged in!");
+            Console.WriteLine("Logged in!");
             _password = "";
+        }
+
+        private void OnLoginKey(SteamUser.LoginKeyCallback callback)
+        {
+            _loginKey = callback.LoginKey;
+        }
+
+        private void OnDisconnect(SteamClient.DisconnectedCallback callback)
+        {
+            Console.WriteLine("Disconnected! Reconnecting...");
+
+            Thread.Sleep(TimeSpan.FromSeconds(5));
+            _steamNerd.SteamClient.Connect();
         }
     }
 }

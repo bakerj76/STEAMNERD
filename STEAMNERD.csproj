@@ -133,6 +133,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChatRoom.cs" />
+    <Compile Include="Login.cs" />
     <Compile Include="ModuleManager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
