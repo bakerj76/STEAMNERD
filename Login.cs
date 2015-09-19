@@ -28,11 +28,16 @@ namespace SteamNerd
 
         public void Connect(string username, string password)
         {
-            Console.WriteLine("Connecting to Steam...");
-            _steamNerd.SteamClient.Connect();
-
             _username = username;
             _password = password;
+
+            Connect();
+        }
+
+        public void Connect()
+        {
+            Console.WriteLine("Connecting to Steam...");
+            _steamNerd.SteamClient.Connect();
         }
 
         private void OnConnect(SteamClient.ConnectedCallback callback)
@@ -42,7 +47,7 @@ namespace SteamNerd
             {
                 Console.WriteLine("{0}", callback.Result);
 
-                _steamNerd.IsRunning = false;
+                _steamNerd.Disconnect();
                 return;
             }
 
@@ -54,10 +59,10 @@ namespace SteamNerd
                 sentryHash = CryptoHelper.SHAHash(sentryFile);
             }
 
-            Connect(sentryHash);
+            LogOn(sentryHash);
         }
 
-        private void Connect(byte[] sentryHash)
+        private void LogOn(byte[] sentryHash)
         {
             _steamNerd.SteamUser.LogOn(new SteamUser.LogOnDetails
             {
@@ -70,6 +75,9 @@ namespace SteamNerd
                 TwoFactorCode = _twoFactorCode,
                 SentryFileHash = sentryHash,
             });
+
+            _username = "";
+            _password = "";
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
@@ -145,8 +153,7 @@ namespace SteamNerd
             if (callback.Result != EResult.OK)
             {
                 Console.WriteLine("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult);
-
-                _steamNerd.IsRunning = false;
+                _steamNerd.Disconnect();
                 return;
             }
 

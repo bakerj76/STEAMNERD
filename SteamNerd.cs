@@ -18,6 +18,7 @@ namespace SteamNerd
         private string _user;
         public Dictionary<SteamID, string> ChatterNames { get; private set; }
         public Dictionary<SteamID, ChatRoom> ChatRooms { get; private set; }
+        public Dictionary<SteamID, User> Users { get; private set; }
 
         public readonly SteamUser SteamUser;
         public readonly SteamClient SteamClient;
@@ -62,6 +63,18 @@ namespace SteamNerd
             while (IsRunning)
             {
                 CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(1f));
+            }
+        }
+
+        public void Disconnect(bool tryReconnect = false)
+        {
+            IsRunning = false;
+            SteamUser.LogOff();
+            SteamClient.Disconnect();
+
+            if (tryReconnect)
+            {
+                _login.Connect();
             }
         }
 
