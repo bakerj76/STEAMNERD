@@ -54,6 +54,11 @@ namespace SteamNerd
                 sentryHash = CryptoHelper.SHAHash(sentryFile);
             }
 
+            Connect(sentryHash);
+        }
+
+        private void Connect(byte[] sentryHash)
+        {
             _steamNerd.SteamUser.LogOn(new SteamUser.LogOnDetails
             {
                 Username = _username,
@@ -160,6 +165,30 @@ namespace SteamNerd
 
             Thread.Sleep(TimeSpan.FromSeconds(5));
             _steamNerd.SteamClient.Connect();
+        }
+
+        /// <summary>
+        /// Handles input for a "fancy" login. It doesn't show the password
+        ///  when the user types it.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
+        public static void FancyLogIn(out string username, out string password) {
+            // Get the username
+            Console.Write("Username: ");
+            username = Console.ReadLine();
+
+            // Get the password
+            Console.Write("Password: ");
+            var key = Console.ReadKey(true);
+            password = "";
+
+            while (key.Key != ConsoleKey.Enter) {
+                password += key.KeyChar;
+                key = Console.ReadKey(true);
+            }
+
+            Console.WriteLine();
         }
     }
 }

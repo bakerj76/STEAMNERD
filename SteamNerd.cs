@@ -43,8 +43,18 @@ namespace SteamNerd
             _login = new Login(this, CallbackManager);
         }
 
+        public void Connect() 
+        {
+            Connect(null, null);
+        }
+
         public void Connect(string username, string password)
         {
+            if (username == null) 
+            {
+                Login.FancyLogIn(out username, out password);
+            }
+
             IsRunning = true;
             _user = username;
             _login.Connect(username, password);
