@@ -25,7 +25,7 @@ namespace SteamNerd
         /// <summary>
         /// The user's current persona state (Online, Away, etc.).
         /// </summary>
-        public EPersonaState PersonaState { get; private set; }
+        public EPersonaState PersonaState { get; set; }
 
         /// <summary>
         /// If the user can do SteamNerd admin stuff.

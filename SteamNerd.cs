@@ -15,7 +15,7 @@ namespace SteamNerd
 
         public bool IsRunning;
 
-        private string _user;
+        private string _username;
         public Dictionary<SteamID, string> ChatterNames { get; private set; }
         public Dictionary<SteamID, ChatRoom> ChatRooms { get; private set; }
         public Dictionary<SteamID, User> Users { get; private set; }
@@ -36,6 +36,7 @@ namespace SteamNerd
             SteamUser = SteamClient.GetHandler<SteamUser>();
             SteamFriends = SteamClient.GetHandler<SteamFriends>();
 
+            Users = new Dictionary<SteamID, User>();
             ChatterNames = new Dictionary<SteamID, string>();
             ChatRooms = new Dictionary<SteamID, ChatRoom>();
 
@@ -57,7 +58,7 @@ namespace SteamNerd
             }
 
             IsRunning = true;
-            _user = username;
+            _username = username;
             _login.Connect(username, password);
 
             while (IsRunning)
@@ -101,7 +102,7 @@ namespace SteamNerd
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            Console.WriteLine("Logging off of {0}!", _user);
+            Console.WriteLine("Logging off of {0}!", _username);
         }
 
         /// <summary>
@@ -126,8 +127,17 @@ namespace SteamNerd
             var friendID = callback.FriendID;
             var name = callback.Name;
 
-            if (callback.State == EPersonaState.Offline ||
-                !callback.SourceSteamID.IsChatAccount ||
+            if (!Users.ContainsKey(friendID))
+            {
+                Users[friendID] = new User(this, friendID, name, callback.State);
+            }
+            else
+            {
+                Users[friendID].PersonaState = callback.State;
+            }
+            
+
+            if (!callback.SourceSteamID.IsChatAccount ||
                 ChatterNames.ContainsKey(friendID))
             {
                 return;
@@ -264,7 +274,7 @@ namespace SteamNerd
             }
             else
             {
-                ChatRooms[chatroom] = new ChatRoom(name);
+                ChatRooms[chatroom] = new ChatRoom(this, chatroom, name);
                 ModuleManager.AddChatroom(chatroom);
             }
         }
