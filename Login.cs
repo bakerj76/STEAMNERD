@@ -74,6 +74,8 @@ namespace SteamNerd
                 AuthCode = _authCode,
                 TwoFactorCode = _twoFactorCode,
                 SentryFileHash = sentryHash,
+
+                ShouldRememberPassword = true
             });
 
             _username = "";
