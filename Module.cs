@@ -32,6 +32,11 @@ namespace SteamNerd
         public virtual string Name { get; set; }
         public virtual string Description { get; set; }
         public virtual bool Global { get; set; }
+
+        /// <summary>
+        /// Restricts module to admins only.
+        /// </summary>
+        public virtual bool Admin { get; set; }
         public string Path { get; }
         public dynamic Variables { get; set; }
 

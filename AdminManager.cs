@@ -3,22 +3,29 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SteamKit2;
 
 namespace SteamNerd
 {
     class AdminManager
     {
-        public List<Module> AdminModules;
-        // public List<User> Admins;
+        private string _adminListPath;
+        public List<SteamID> Admins;
 
-        public void CheckCommand(string[] args)
+        public void AddAdmin(User user)
+        {
+            user.IsAdmin = true;
+            Admins.Add(user.SteamID);
+        }
+
+        public void Save()
         {
 
         }
 
-        public void AddModule(Module module)
+        public void Load(string adminListPath)
         {
-            AdminModules.Add(module);
+            _adminListPath = adminListPath;
         }
     }
 }

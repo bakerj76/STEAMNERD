@@ -30,7 +30,7 @@ namespace SteamNerd
         /// <summary>
         /// If the user can do SteamNerd admin stuff.
         /// </summary>
-        public bool IsAdmin { get; private set; }
+        public bool IsAdmin { get; set; }
 
         /// <summary>
         /// The current SteamNerd instance.

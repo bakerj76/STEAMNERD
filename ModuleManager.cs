@@ -24,6 +24,7 @@ namespace SteamNerd
         private List<string> _localModulePaths;
         private Dictionary<string, Module> _globalModules;
         private Dictionary<SteamID, Dictionary<string, Module>> _chatroomModules;
+        private Dictionary<string, Module> _adminModules;
 
         public ModuleManager(SteamNerd steamNerd)
         {
@@ -32,6 +33,7 @@ namespace SteamNerd
             _localModulePaths = new List<string>();
             _globalModules = new Dictionary<string, Module>();
             _chatroomModules = new Dictionary<SteamID, Dictionary<string, Module>>();
+            _adminModules = new Dictionary<string, Module>();
 
             InterpretDirectory();
 
