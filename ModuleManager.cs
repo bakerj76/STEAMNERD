@@ -258,6 +258,21 @@ namespace SteamNerd
             foreach (var module in modules)
             {
                 module.OnFriendMessage(callback, args);
+
+                var command = module.FindCommand(args);
+
+                // If FindCommand returned something, execute it.
+                if (command.HasValue)
+                {
+                    try
+                    {
+                        command.Value.Callback(callback, args);
+                    }
+                    catch (Exception e)
+                    {
+                        PrintStackFrame(e);
+                    }
+                }
             }
         }
 

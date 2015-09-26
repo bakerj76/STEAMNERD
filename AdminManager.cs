@@ -33,7 +33,7 @@ namespace SteamNerd
         }
 
         /// <summary>
-        /// Save the list of admins.
+        /// Saves the list of admins.
         /// </summary>
         public void Save()
         {
@@ -46,6 +46,10 @@ namespace SteamNerd
             }
         }
 
+        /// <summary>
+        /// Loads the list of admins.
+        /// </summary>
+        /// <param name="adminListPath"></param>
         public void Load(string adminListPath)
         {
             using (var file = new StreamReader(_adminListPath))

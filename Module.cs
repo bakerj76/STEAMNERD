@@ -9,14 +9,17 @@ namespace SteamNerd
 {
     public class Module
     {
+        public enum CommandTypes { Public, Private, Both }
+
         public struct Command
         {
             public string[] Match;
             public string Description;
             public CommandCallback Callback;
+            public CommandTypes CommandType;
         }
 
-        public delegate void CommandCallback(SteamFriends.ChatMsgCallback callback, string[] args);
+        public delegate void CommandCallback(CallbackMsg callback, string[] args);
         public delegate void SayCallback(string message, SteamID receiver = null);
 
         private Action Start;
@@ -197,23 +200,25 @@ namespace SteamNerd
             }
         }
 
-        public void AddCommand(string match, string help, CommandCallback callback)
+        public void AddCommand(string match, string help, CommandCallback callback, CommandTypes commandType = CommandTypes.Both)
         {
             Commands.Add(new Command
             {
                 Match = new[] { match },
                 Description = help,
-                Callback = callback
+                Callback = callback,
+                CommandType = commandType
             });
         }
 
-        public void AddCommand(string[] match, string help, CommandCallback callback)
+        public void AddCommand(string[] match, string help, CommandCallback callback, CommandTypes commandType = CommandTypes.Both)
         {
             Commands.Add(new Command
             {
                 Match = match,
                 Description = help,
-                Callback = callback
+                Callback = callback,
+                CommandType = commandType
             });
         }
 
