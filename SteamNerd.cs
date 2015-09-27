@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Security.Cryptography;
-
 using SteamKit2;
 
 namespace SteamNerd
@@ -25,6 +21,7 @@ namespace SteamNerd
         public readonly SteamFriends SteamFriends;
         public readonly CallbackManager CallbackManager;
         public readonly ModuleManager ModuleManager;
+        private readonly AdminManager _adminManager;
         private readonly Login _login;
 
         public SteamNerd()
@@ -32,6 +29,7 @@ namespace SteamNerd
             SteamClient = new SteamClient();
             CallbackManager = new CallbackManager(SteamClient);
             ModuleManager = new ModuleManager(this);
+            //_adminManager = new AdminManager("admins.txt");
 
             SteamUser = SteamClient.GetHandler<SteamUser>();
             SteamFriends = SteamClient.GetHandler<SteamFriends>();
