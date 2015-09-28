@@ -29,7 +29,7 @@ namespace SteamNerd
             SteamClient = new SteamClient();
             CallbackManager = new CallbackManager(SteamClient);
             ModuleManager = new ModuleManager(this);
-            //_adminManager = new AdminManager("admins.txt");
+            _adminManager = new AdminManager("admins.txt");
 
             SteamUser = SteamClient.GetHandler<SteamUser>();
             SteamFriends = SteamClient.GetHandler<SteamFriends>();
@@ -110,6 +110,8 @@ namespace SteamNerd
         /// <param name="callback"></param>
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
+            Console.WriteLine("Setting account info.");
+
             // TODO: put this stuff in an .ini file
             SteamFriends.SetPersonaState(EPersonaState.Online);
             SteamFriends.SetPersonaName("xXxTrollSlayerxXx");

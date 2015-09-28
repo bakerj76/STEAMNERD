@@ -59,6 +59,7 @@ namespace SteamNerd
                 sentryHash = CryptoHelper.SHAHash(sentryFile);
             }
 
+            Console.WriteLine("Connected!");
             LogOn(sentryHash);
         }
 
