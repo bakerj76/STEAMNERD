@@ -12,7 +12,6 @@ namespace SteamNerd
         public bool IsRunning;
 
         private string _username;
-        public Dictionary<SteamID, string> ChatterNames { get; private set; }
         public Dictionary<SteamID, ChatRoom> ChatRooms { get; private set; }
         public Dictionary<SteamID, User> Users { get; private set; }
 
@@ -21,7 +20,7 @@ namespace SteamNerd
         public readonly SteamFriends SteamFriends;
         public readonly CallbackManager CallbackManager;
         public readonly ModuleManager ModuleManager;
-        private readonly AdminManager _adminManager;
+        private readonly UserManager _adminManager;
         private readonly Login _login;
 
         public SteamNerd()
@@ -29,13 +28,12 @@ namespace SteamNerd
             SteamClient = new SteamClient();
             CallbackManager = new CallbackManager(SteamClient);
             ModuleManager = new ModuleManager(this);
-            _adminManager = new AdminManager("admins.txt");
+            _adminManager = new UserManager("admins.txt");
 
             SteamUser = SteamClient.GetHandler<SteamUser>();
             SteamFriends = SteamClient.GetHandler<SteamFriends>();
 
             Users = new Dictionary<SteamID, User>();
-            ChatterNames = new Dictionary<SteamID, string>();
             ChatRooms = new Dictionary<SteamID, ChatRoom>();
 
             SubscribeCallbacks();

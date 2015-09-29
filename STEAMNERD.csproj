@@ -133,7 +133,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AdminManager.cs" />
+    <Compile Include="UserManager.cs" />
     <Compile Include="ChatRoom.cs" />
     <Compile Include="Login.cs" />
     <Compile Include="ModuleManager.cs" />
