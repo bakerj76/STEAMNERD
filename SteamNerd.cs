@@ -12,30 +12,31 @@ namespace SteamNerd
         public bool IsRunning;
 
         private string _username;
-        public Dictionary<SteamID, ChatRoom> ChatRooms { get; private set; }
-        public Dictionary<SteamID, User> Users { get; private set; }
-
+        
         public readonly SteamUser SteamUser;
         public readonly SteamClient SteamClient;
         public readonly SteamFriends SteamFriends;
+
         public readonly CallbackManager CallbackManager;
         public readonly ModuleManager ModuleManager;
-        private readonly UserManager _adminManager;
+        public readonly UserManager UserManager;
+        public readonly ChatRoomManager ChatRoomManager;
+
         private readonly Login _login;
 
         public SteamNerd()
         {
             SteamClient = new SteamClient();
+
             CallbackManager = new CallbackManager(SteamClient);
             ModuleManager = new ModuleManager(this);
-            _adminManager = new UserManager("admins.txt");
+            UserManager = new UserManager(this, "admins.txt");
+            ChatRoomManager = new ChatRoomManager(this, "chats.txt");
 
             SteamUser = SteamClient.GetHandler<SteamUser>();
             SteamFriends = SteamClient.GetHandler<SteamFriends>();
 
-            Users = new Dictionary<SteamID, User>();
-            ChatRooms = new Dictionary<SteamID, ChatRoom>();
-
+            
             SubscribeCallbacks();
 
             _login = new Login(this, CallbackManager);

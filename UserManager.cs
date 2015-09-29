@@ -8,8 +8,9 @@ using SteamKit2;
 
 namespace SteamNerd
 {
-    class UserManager
+    public class UserManager
     {
+        private SteamNerd _steamNerd;
         // Where the admin file path is located.
         private string _adminListPath;
         private List<SteamID> _admins;
@@ -20,8 +21,9 @@ namespace SteamNerd
         /// Creates an Admin Manager.
         /// </summary>
         /// <param name="adminListPath">The file that contains the admin list.</param>
-        public UserManager(string adminListPath)
+        public UserManager(SteamNerd steamNerd, string adminListPath)
         {
+            _steamNerd = steamNerd;
             _adminListPath = adminListPath;
             LoadAdminFile();
 
@@ -34,23 +36,21 @@ namespace SteamNerd
         /// <param name="user">The user to make admin.</param>
         public void AddAdmin(User user)
         {
+            var steamID = user.SteamID;
+
             user.IsAdmin = true;
-            _admins.Add(user.SteamID);
+            _admins.Add(steamID);
+            SaveAdmin(steamID);
         }
 
         /// <summary>
-        /// Saves the list of admins.
+        /// Saves a new admin.
         /// </summary>
-        private void SaveAdminFile()
+        private void SaveAdmin(SteamID steamID)
         {
             using (var file = new StreamWriter(_adminListPath))
             {
-                // Write each admin SteamID to the file.
-                foreach (var admin in _admins)
-                {
-                    file.Write(admin.Render() + "\r\n");
-                }
-
+                file.WriteLine(steamID.Render());
                 file.Flush();
             }
         }
@@ -97,6 +97,7 @@ namespace SteamNerd
         {
             user.IsAdmin = IsAdmin(user);
             _users[user.SteamID] = user;
+            new User(_steamNerd)
         }
 
         /// <summary>
