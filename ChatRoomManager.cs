@@ -30,17 +30,15 @@ namespace SteamNerd
         {
             _steamNerd = steamNerd;
             _autoJoinPath = autoJoinPath;
+            _chatrooms = new Dictionary<SteamID, ChatRoom>();
         }
 
         private void LoadAutoJoinChatFile()
         {
-            // If the file doesn't exist, create it.
-            if (!File.Exists(_autoJoinPath))
-            {
-                File.Create(_autoJoinPath);
-            }
-
-            using (var file = new StreamReader(File.OpenRead(_autoJoinPath)))
+            // Open the file or create it if it doesn't exist.
+            using (var file = new StreamReader(
+                new FileStream(_autoJoinPath, FileMode.OpenOrCreate)
+            ))
             {
                 // Read the file and join each chat SteamID.
                 string line;

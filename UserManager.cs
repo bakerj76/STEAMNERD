@@ -28,6 +28,7 @@ namespace SteamNerd
             LoadAdminFile();
 
             _users = new Dictionary<SteamID, User>();
+            _admins = new List<SteamID>();
         }
 
         /// <summary>
@@ -60,13 +61,10 @@ namespace SteamNerd
         /// </summary>
         private void LoadAdminFile()
         {
-            // If the file doesn't exist, create it.
-            if (!File.Exists(_adminListPath))
-            {
-                File.Create(_adminListPath);
-            }
-
-            using (var file = new StreamReader(File.OpenRead(_adminListPath)))
+            // Open the file or create it if it doesn't exist.
+            using (var file = new StreamReader(
+                new FileStream(_adminListPath, FileMode.OpenOrCreate)
+            ))
             {
                 // Read the file and add each SteamID.
                 string line;
@@ -98,6 +96,7 @@ namespace SteamNerd
         /// <returns></returns>
         public User AddUser(SteamID steamID, string name, EPersonaState personaState)
         {
+            Console.WriteLine("Adding user {0}", name);
             var user = new User(_steamNerd, steamID, name, personaState);
             user.IsAdmin = IsAdmin(user);
             _users[user.SteamID] = user;
