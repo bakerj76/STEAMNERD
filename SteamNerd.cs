@@ -140,7 +140,7 @@ namespace SteamNerd
                 chatRoom.AddUser(user);
 
                 // Trigger EnteredChat for each module.
-                ModuleManager.EnteredChat(callback);
+                ModuleManager.EnteredChat(chatRoom, user, callback);
             }
 
             // Update their persona state.

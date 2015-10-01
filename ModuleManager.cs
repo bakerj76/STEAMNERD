@@ -18,7 +18,6 @@ namespace SteamNerd
 
         private SteamNerd _steamNerd;
         private FileSystemWatcher _watcher;
-        private DateTime _lastRead;
         private ScriptEngine _pyEngine;
 
         private List<string> _localModulePaths;
@@ -290,18 +289,21 @@ namespace SteamNerd
                 module.OnSelfChatEnter(callback);
             }
         }
-
+        
         /// <summary>
         /// When someone other than the bot enters the chat, signal the 
         /// modules.
         /// </summary>
+        /// <param name="chatRoom"></param>
+        /// <param name="user"></param>
         /// <param name="callback"></param>
-        public void EnteredChat(SteamFriends.PersonaStateCallback callback)
+        public void EnteredChat(
+            ChatRoom chatRoom, 
+            User user, 
+            SteamFriends.PersonaStateCallback callback
+        )
         {
-            // Get both the global modules and the modules specific to that chatroom.
-            var modules = _globalModules.Values.Union(_chatroomModules[callback.SourceSteamID].Values);
-
-            foreach (var module in modules)
+            foreach (var module in chatRoom.GetAllModules())
             {
                 module.OnChatEnter(callback);
             }

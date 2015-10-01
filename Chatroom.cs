@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using SteamKit2;
 
 namespace SteamNerd
@@ -7,19 +8,24 @@ namespace SteamNerd
     public class ChatRoom
     {
         /// <summary>
-        /// The SteamID of the ChatRoom.
+        /// The SteamID of the chat room.
         /// </summary>
         public SteamID SteamID { get; private set; }
 
         /// <summary>
-        /// The name of the ChatRoom.
+        /// The name of the chat room.
         /// </summary>
         public string Name { get; set; }
 
         /// <summary>
-        /// The users currently in this ChatRoom.
+        /// The users currently in this chat room.
         /// </summary>
         public List<User> Users { get; private set; }
+
+        /// <summary>
+        /// A list of local modules in this chat room.
+        /// </summary>
+        public List<dynamic> Modules { get; private set; }
 
         /// <summary>
         /// The current SteamNerd instance.
@@ -38,6 +44,7 @@ namespace SteamNerd
             SteamID = steamID;
             Name = name;
             Users = new List<User>();
+            Modules = new List<dynamic>();
         }
 
         /// <summary>
@@ -82,6 +89,24 @@ namespace SteamNerd
         public void RemoveUser(User user)
         {
             Users.Remove(user);
+        }
+
+        /// <summary>
+        /// Adds a local module to the chat room.
+        /// </summary>
+        /// <param name="module">The module to add.</param>
+        public void AddModule(Module module)
+        {
+            Modules.Add(module);
+        }
+
+        /// <summary>
+        /// Gets both local and global modules.
+        /// </summary>
+        /// <returns>A list of local and global modules.</returns>
+        public IEnumerable<dynamic> GetAllModules()
+        {
+            return Modules.Union(_steamNerd.ModuleManager.GetModules());
         }
     }
 }
