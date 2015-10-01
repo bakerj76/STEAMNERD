@@ -90,14 +90,19 @@ namespace SteamNerd
         }
 
         /// <summary>
-        /// Adds a user to the user list.
+        /// Adds a user to the manager.
         /// </summary>
-        /// <param name="user"></param>
-        public void AddUser(User user)
+        /// <param name="steamID">The user's SteamID.</param>
+        /// <param name="name">The user's name.</param>
+        /// <param name="personaState">The user's persona state.</param>
+        /// <returns></returns>
+        public User AddUser(SteamID steamID, string name, EPersonaState personaState)
         {
+            var user = new User(_steamNerd, steamID, name, personaState);
             user.IsAdmin = IsAdmin(user);
             _users[user.SteamID] = user;
-            new User(_steamNerd)
+
+            return user;
         }
 
         /// <summary>
@@ -107,7 +112,17 @@ namespace SteamNerd
         /// <returns>The user's information.</returns>
         public User GetUser(SteamID steamID)
         {
-            return _users[steamID];
+            return _users.ContainsKey(steamID) ? _users[steamID] : null;
+        }
+
+        /// <summary>
+        /// Checks if the user exists.
+        /// </summary>
+        /// <param name="steamID">The steamID of the user</param>
+        /// <returns>True if the user exists, false otherwise.</returns>
+        public bool UserExists(SteamID steamID)
+        {
+            return _users.ContainsKey(steamID);
         }
     }
 }

@@ -17,24 +17,26 @@ namespace SteamNerd
         public string Name { get; set; }
 
         /// <summary>
-        /// The SteamIDs of users currently in this ChatRoom.
-        /// </summary>
-        public List<SteamID> Chatters { get; private set; }
-
-        /// <summary>
         /// The users currently in this ChatRoom.
         /// </summary>
         public List<User> Users { get; private set; }
 
+        /// <summary>
+        /// The current SteamNerd instance.
+        /// </summary>
         private SteamNerd _steamNerd;
 
+        /// <summary>
+        /// Creates a chat room.
+        /// </summary>
+        /// <param name="steamNerd">The SteamNerd instance.</param>
+        /// <param name="steamID">The SteamID of the chat room.</param>
+        /// <param name="name">The name of the chat room.</param>
         public ChatRoom(SteamNerd steamNerd, SteamID steamID, string name)
         {
             _steamNerd = steamNerd;
             SteamID = steamID;
             Name = name;
-
-            Chatters = new List<SteamID>();
             Users = new List<User>();
         }
 
@@ -62,6 +64,24 @@ namespace SteamNerd
         public void InviteUser(SteamID invitedUser)
         {
             _steamNerd.SteamFriends.InviteUserToChat(invitedUser, SteamID);
+        }
+
+        /// <summary>
+        /// Adds a user to the chat user list.
+        /// </summary>
+        /// <param name="user">The user to add.</param>
+        public void AddUser(User user)
+        {
+            Users.Add(user);
+        }
+
+        /// <summary>
+        /// Removes a user from the chat.
+        /// </summary>
+        /// <param name="user">The user to remove.</param>
+        public void RemoveUser(User user)
+        {
+            Users.Remove(user);
         }
     }
 }

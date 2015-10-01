@@ -17,6 +17,15 @@ namespace SteamNerd
         private SteamNerd _steamNerd;
         private Dictionary<SteamID, ChatRoom> _chatrooms;
 
+        /// <summary>
+        /// Creates a Chat Room Manager that handles chat rooms.
+        /// </summary>
+        /// <param name="steamNerd">
+        /// The SteamNerd instance.
+        /// </param>
+        /// <param name="autoJoinPath">
+        /// The file containing the auto-joined chat rooms.
+        /// </param>
         public ChatRoomManager(SteamNerd steamNerd, string autoJoinPath)
         {
             _steamNerd = steamNerd;
@@ -45,6 +54,10 @@ namespace SteamNerd
             }
         }
 
+        /// <summary>
+        /// Adds a chat room that is automatically joined on start-up.
+        /// </summary>
+        /// <param name="steamID">The SteamID of the chat room.</param>
         public void AddChatRoomToAutoJoin(SteamID steamID)
         {
             using (var file = new StreamWriter(File.OpenWrite(_autoJoinPath)))
@@ -59,20 +72,33 @@ namespace SteamNerd
         /// </summary>
         /// <param name="steamID">The SteamID of the chat room.</param>
         /// <param name="name">The name of the chat room.</param>
-        public void AddChatRoom(SteamID steamID, string name)
+        /// <returns>The created chat room.</returns>
+        public ChatRoom AddChatRoom(SteamID steamID, string name)
         {
             var chatRoom = new ChatRoom(_steamNerd, steamID, name);
             _chatrooms[steamID] = chatRoom;
+
+            return chatRoom;
         }
 
         /// <summary>
         /// Gets information for a currently joined chat room.
         /// </summary>
         /// <param name="steamID"></param>
-        /// <returns></returns>
+        /// <returns>The chat room.</returns>
         public ChatRoom GetChatRoom(SteamID steamID)
         {
             return _chatrooms[steamID];
+        }
+
+        /// <summary>
+        /// Checks if the chat room exists.
+        /// </summary>
+        /// <param name="steamID">The chat room's steamID.</param>
+        /// <returns>True if the chat room exists, false otherwise.</returns>
+        public bool ChatRoomExists(SteamID steamID)
+        {
+            return _chatrooms.ContainsKey(steamID);
         }
     }
 }
